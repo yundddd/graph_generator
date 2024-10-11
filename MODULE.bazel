@@ -1,0 +1,100 @@
+module(name = "graph_generator")
+
+########################################
+# Setings
+########################################
+PY_VERSION = "3.11.6"
+
+########################################
+# Generic deps
+########################################
+bazel_dep(name = "aspect_bazel_lib", version = "2.5.1")
+bazel_dep(name = "platforms", version = "0.0.8")
+
+########################################
+# Set up rules_python and pip
+########################################
+bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "aspect_rules_py", version = "0.7.1")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    python_version = PY_VERSION,
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pip",
+    python_version = PY_VERSION,
+    requirements_lock = "//:requirements_lock.txt",
+)
+use_repo(pip, "pip")
+
+########################################
+# Set up hermetic Buildifier tools
+########################################
+# This is helpful because the old version used an http_archive to fetch the buildtools
+# WORKSPACE, but it is incompatible with bzlmod Go toolchains. Instead let's just use
+# a prebuilt version.
+bazel_dep(
+    name = "buildifier_prebuilt",
+    version = "6.4.0",
+    dev_dependency = True,
+)
+
+########################################
+# Set up rules_pkg
+########################################
+bazel_dep(name = "rules_pkg", version = "0.10.1")
+
+########################################
+# Set up hermetic C/C++ tools
+########################################
+# NOTE: We don't really use/support C/C++ in this repo, and if you need to you'll
+# almost certainly want your own proper toolchains to do so, but rules_oci requires
+# CC toolchains to be registered for packaging python interpreters, so we will cheat a
+# little using zig/hermetic_cc_toolchain to provide cross-compilation toolchains for
+# packaging OCI images.
+bazel_dep(name = "hermetic_cc_toolchain", version = "3.0.1")
+
+toolchains = use_extension("@hermetic_cc_toolchain//toolchain:ext.bzl", "toolchains")
+use_repo(toolchains, "zig_sdk")
+
+register_toolchains(
+    "@zig_sdk//toolchain:linux_amd64_gnu.2.31",
+    "@zig_sdk//toolchain:linux_arm64_gnu.2.31",
+)
+
+########################################
+# Set up rules_oci
+########################################
+bazel_dep(name = "rules_oci", version = "1.7.4")
+
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+oci.pull(
+    name = "distroless_base",
+    # 'latest' is not reproducible, but it's convenient.
+    # During the build we print a WARNING message that includes recommended 'digest' and 'platforms'
+    # values which you can use here in place of 'tag' to pin for reproducibility.
+    # tag = "latest",
+    digest = "sha256:9d4e5680d67c984ac9c957f66405de25634012e2d5d6dc396c4bdd2ba6ae569f",
+    image = "gcr.io/distroless/base",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64/v8",
+    ],
+)
+oci.pull(
+    name = "ubuntu_base",
+    # tag = "24.04",
+    digest = "sha256:723ad8033f109978f8c7e6421ee684efb624eb5b9251b70c6788fdb2405d050b",
+    image = "ubuntu",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64/v8",
+    ],
+)
+
+# For each oci.pull call, repeat the "name" here to expose them as dependencies.
+use_repo(oci, "distroless_base", "ubuntu_base")
