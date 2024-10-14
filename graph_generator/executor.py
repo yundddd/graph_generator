@@ -30,13 +30,17 @@ class Executor:
             if node.loop
         ]
         heapq.heapify(self.event_queue)
-        self.current_time = 0
+        self.current_time = -1
 
     def start(self, stop_at: int):
-        while len(self.event_queue) and self.current_time < stop_at:
+        while len(self.event_queue):
             cur_event = heapq.heappop(self.event_queue)
-            self.current_time = cur_event.timestamp
-            print(f"Time: {self.current_time}")
+            if cur_event.timestamp != self.current_time:
+                self.current_time = cur_event.timestamp
+                if self.current_time >= stop_at:
+                    print(f"Time limit {stop_at} reached.")
+                    break
+                print(f"Time: {self.current_time}")
 
             if isinstance(cur_event.work, LoopConfig):
                 # If it's a periodic event, schedule the next one.
@@ -44,17 +48,18 @@ class Executor:
                 assert loop
                 self._schedule_next_periodic_work(loop, cur_event.node)
                 # Execute callback for this loop:
-                self._execute_callback(loop.callback, cur_event.node)
+                print(f"    {cur_event.node} executing loop callback")
+                self._execute_callback(loop.callback)
 
             else:
-                print(f"    {cur_event.node} received data")
                 data = cur_event.subscription_data
                 assert data is not None
                 sub = cur_event.work
+                print(f"    {cur_event.node} executing subscription callback")
                 if sub.valid_range[0] <= data <= sub.valid_range[1]:
-                    self._execute_callback(sub.nominal_callback, cur_event.node)
+                    self._execute_callback(sub.nominal_callback)
                 else:
-                    self._execute_callback(sub.faulted_callback, cur_event.node)
+                    self._execute_callback(sub.faulted_callback)
 
     def _schedule_next_periodic_work(self, loop: LoopConfig, node_name: str):
         new_event = Event(
@@ -62,8 +67,7 @@ class Executor:
         )
         heapq.heappush(self.event_queue, new_event)
 
-    def _execute_callback(self, callback: CallbackConfig, node_name: str):
-        print(f"    {node_name} executing loop")
+    def _execute_callback(self, callback: CallbackConfig):
         if callback.publish:
             for pub in callback.publish:
                 # publish message to all subscribers of this topic

@@ -23,7 +23,11 @@ def main():
         loop=LoopConfig(
             period=10,
             callback=CallbackConfig(
-                publish=[PublishConfig(topic="topic1", value_range=(0, 10))]
+                publish=[
+                    PublishConfig(
+                        topic="topic1", value_range=(0, 10), delay_range=(0, 2)
+                    )
+                ]
             ),
         ),
     )
@@ -35,13 +39,25 @@ def main():
                 valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic2", value_range=(1, 10))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic2", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
                 ),
                 faulted_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic2", value_range=(10, 20))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic2", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
                 ),
                 watchdog_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic2", value_range=(20, 30))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic2", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
                 ),
             )
         ],
@@ -54,13 +70,25 @@ def main():
                 valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic3", value_range=(1, 10))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic3", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
                 ),
                 faulted_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic3", value_range=(10, 20))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic3", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
                 ),
                 watchdog_callback=CallbackConfig(
-                    publish=[PublishConfig(topic="topic3", value_range=(20, 30))]
+                    publish=[
+                        PublishConfig(
+                            topic="topic3", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
                 ),
             )
         ],
