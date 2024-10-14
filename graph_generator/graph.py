@@ -31,12 +31,9 @@ class Graph:
             if node.config.subscribe:
                 for sub in node.config.subscribe:
                     self._add_subscriber(topic=sub.topic, subscriber=node)
-                    self._add_publisher_from_callback(
-                        node, sub.nominal_callback)
-                    self._add_publisher_from_callback(
-                        node, sub.faulted_callback)
-                    self._add_publisher_from_callback(
-                        node, sub.watchdog_callback)
+                    self._add_publisher_from_callback(node, sub.nominal_callback)
+                    self._add_publisher_from_callback(node, sub.invalid_input_callback)
+                    self._add_publisher_from_callback(node, sub.lost_input_callback)
 
         for topic, publisher in self.topic_publisher_map.items():
             for subscriber in self.topic_subscriber_map[topic]:
@@ -53,7 +50,7 @@ class Graph:
         plt.show()
 
     def nodes_with_loops(self):
-        return [node.config for _, node in self.nodes.items() if node.config.loop]
+        return [node for _, node in self.nodes.items() if node.config.loop]
 
     def topic_subscribers(self, topic: str) -> List[Node]:
         return self.topic_subscriber_map.get(topic, [])
@@ -74,12 +71,10 @@ class Graph:
 
     def _add_subscriber(self, topic: str, subscriber: Node):
         if subscriber in self.topic_subscriber_map[topic]:
-            raise ValueError(f"Duplicate subscriber "
-                             "{subscriber} for topic {topic}")
+            raise ValueError(f"Duplicate subscriber " "{subscriber} for topic {topic}")
         self.topic_subscriber_map[topic].append(subscriber)
 
-    def _add_publisher_from_callback(
-            self, node: Node, callback: CallbackConfig):
+    def _add_publisher_from_callback(self, node: Node, callback: CallbackConfig):
         if callback.publish:
             for publish in callback.publish:
                 self._add_publisher(topic=publish.topic, publisher=node)

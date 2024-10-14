@@ -1,10 +1,13 @@
 from graph_generator.executor import Executor
 from graph_generator.graph import Graph
 from graph_generator.node import (
-    CallbackConfig,
+    InvalidInputCallbackConfig,
+    LoopCallbackConfig,
     LoopConfig,
+    LostInputCallbackConfig,
     Node,
     NodeConfig,
+    NominalCallbackConfig,
     PublishConfig,
     SubscriptionConfig,
 )
@@ -22,7 +25,7 @@ def main():
         name="A",
         loop=LoopConfig(
             period=10,
-            callback=CallbackConfig(
+            callback=LoopCallbackConfig(
                 publish=[
                     PublishConfig(
                         topic="topic1", value_range=(0, 10), delay_range=(0, 2)
@@ -35,44 +38,64 @@ def main():
         name="B",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1", valid_range=(0, 10),
+                topic="topic1",
+                valid_range=(0, 10),
                 watchdog=2,
-                nominal_callback=CallbackConfig(
+                nominal_callback=NominalCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(1, 10),
-                            delay_range=(0, 2))]),
-                faulted_callback=CallbackConfig(
+                            topic="topic2", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+                invalid_input_callback=InvalidInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(10, 20),
-                            delay_range=(0, 2))]),
-                watchdog_callback=CallbackConfig(
+                            topic="topic2", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+                lost_input_callback=LostInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(20, 30),
-                            delay_range=(0, 2))]),)],)
+                            topic="topic2", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+            )
+        ],
+    )
     node_c = NodeConfig(
         name="C",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1", valid_range=(0, 10),
+                topic="topic1",
+                valid_range=(0, 10),
                 watchdog=2,
-                nominal_callback=CallbackConfig(
+                nominal_callback=NominalCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(1, 10),
-                            delay_range=(0, 2))]),
-                faulted_callback=CallbackConfig(
+                            topic="topic3", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+                invalid_input_callback=InvalidInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(10, 20),
-                            delay_range=(0, 2))]),
-                watchdog_callback=CallbackConfig(
+                            topic="topic3", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+                lost_input_callback=LostInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(20, 30),
-                            delay_range=(0, 2))]),)],)
+                            topic="topic3", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+            )
+        ],
+    )
     node_d = NodeConfig(
         name="D",
         subscribe=[
@@ -80,9 +103,9 @@ def main():
                 topic="topic2",
                 valid_range=(0, 10),
                 watchdog=2,
-                nominal_callback=CallbackConfig(),
-                faulted_callback=CallbackConfig(),
-                watchdog_callback=CallbackConfig(),
+                nominal_callback=NominalCallbackConfig(),
+                invalid_input_callback=InvalidInputCallbackConfig(),
+                lost_input_callback=LostInputCallbackConfig(),
             )
         ],
     )
@@ -93,9 +116,9 @@ def main():
                 topic="topic3",
                 valid_range=(0, 10),
                 watchdog=2,
-                nominal_callback=CallbackConfig(),
-                faulted_callback=CallbackConfig(),
-                watchdog_callback=CallbackConfig(),
+                nominal_callback=NominalCallbackConfig(),
+                invalid_input_callback=InvalidInputCallbackConfig(),
+                lost_input_callback=LostInputCallbackConfig(),
             )
         ],
     )
@@ -107,10 +130,9 @@ def main():
     graph.add_node(Node(node_e))
     graph.build_graph()
     print(graph.adjacency_list)
-    graph.visualize()
 
-    executor = Executor(graph)
-    executor.start(stop_at=50)
+    executor = Executor(graph, stop_at=50)
+    executor.start(viz=False)
 
 
 if __name__ == "__main__":
