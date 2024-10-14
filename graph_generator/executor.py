@@ -63,8 +63,8 @@ class Executor:
 
     def _schedule_next_periodic_work(self, loop: LoopConfig, node_name: str):
         new_event = Event(
-            timestamp=self.current_time + loop.period, node=node_name, work=loop
-        )
+            timestamp=self.current_time + loop.period, node=node_name,
+            work=loop)
         heapq.heappush(self.event_queue, new_event)
 
     def _execute_callback(self, callback: CallbackConfig):
@@ -82,7 +82,8 @@ class Executor:
                     )
                     heapq.heappush(self.event_queue, new_event)
 
-    def _find_sub_config(self, node: NodeConfig, topic: str) -> SubscriptionConfig:
+    def _find_sub_config(
+            self, node: NodeConfig, topic: str) -> SubscriptionConfig:
         if not node.subscribe:
             raise ValueError(f"{node.name} doesn't subscribe to anything")
         for sub in node.subscribe:

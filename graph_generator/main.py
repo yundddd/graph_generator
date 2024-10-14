@@ -35,64 +35,44 @@ def main():
         name="B",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1",
-                valid_range=(0, 10),
+                topic="topic1", valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(1, 10), delay_range=(0, 2)
-                        )
-                    ]
-                ),
+                            topic="topic2", value_range=(1, 10),
+                            delay_range=(0, 2))]),
                 faulted_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(10, 20), delay_range=(0, 2)
-                        )
-                    ]
-                ),
+                            topic="topic2", value_range=(10, 20),
+                            delay_range=(0, 2))]),
                 watchdog_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(20, 30), delay_range=(0, 2)
-                        )
-                    ]
-                ),
-            )
-        ],
-    )
+                            topic="topic2", value_range=(20, 30),
+                            delay_range=(0, 2))]),)],)
     node_c = NodeConfig(
         name="C",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1",
-                valid_range=(0, 10),
+                topic="topic1", valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(1, 10), delay_range=(0, 2)
-                        )
-                    ]
-                ),
+                            topic="topic3", value_range=(1, 10),
+                            delay_range=(0, 2))]),
                 faulted_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(10, 20), delay_range=(0, 2)
-                        )
-                    ]
-                ),
+                            topic="topic3", value_range=(10, 20),
+                            delay_range=(0, 2))]),
                 watchdog_callback=CallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(20, 30), delay_range=(0, 2)
-                        )
-                    ]
-                ),
-            )
-        ],
-    )
+                            topic="topic3", value_range=(20, 30),
+                            delay_range=(0, 2))]),)],)
     node_d = NodeConfig(
         name="D",
         subscribe=[

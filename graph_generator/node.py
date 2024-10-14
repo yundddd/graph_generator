@@ -68,7 +68,8 @@ class Node:
         if not config.name or len(config.name) == 0:
             raise ValueError("Name must be provided for a node")
         if not config.loop and not config.subscribe:
-            raise ValueError("A node must have at least one loop or subscription")
+            raise ValueError(
+                "A node must have at least one loop or subscription")
         if config.subscribe and len(config.subscribe) == 0:
             raise ValueError("Subscribe config cannot be an empty list")
 
