@@ -39,44 +39,64 @@ def main():
         name="B",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1", valid_range=(0, 10),
+                topic="topic1",
+                valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=NominalCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(1, 10),
-                            delay_range=(0, 2))]),
+                            topic="topic2", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
+                ),
                 invalid_input_callback=InvalidInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(10, 20),
-                            delay_range=(0, 2))]),
+                            topic="topic2", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
+                ),
                 lost_input_callback=LostInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic2", value_range=(20, 30),
-                            delay_range=(0, 2))]),)],)
+                            topic="topic2", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+            )
+        ],
+    )
     node_c = NodeConfig(
         name="C",
         subscribe=[
             SubscriptionConfig(
-                topic="topic1", valid_range=(0, 10),
+                topic="topic1",
+                valid_range=(0, 10),
                 watchdog=2,
                 nominal_callback=NominalCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(1, 10),
-                            delay_range=(0, 2))]),
+                            topic="topic3", value_range=(1, 10), delay_range=(0, 2)
+                        )
+                    ]
+                ),
                 invalid_input_callback=InvalidInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(10, 20),
-                            delay_range=(0, 2))]),
+                            topic="topic3", value_range=(10, 20), delay_range=(0, 2)
+                        )
+                    ]
+                ),
                 lost_input_callback=LostInputCallbackConfig(
                     publish=[
                         PublishConfig(
-                            topic="topic3", value_range=(20, 30),
-                            delay_range=(0, 2))]),)],)
+                            topic="topic3", value_range=(20, 30), delay_range=(0, 2)
+                        )
+                    ]
+                ),
+            )
+        ],
+    )
     node_d = NodeConfig(
         name="D",
         subscribe=[
@@ -113,15 +133,12 @@ def main():
     print(graph.adjacency_list)
 
     fault_injection_config = FaultInjectionConfig(
-        inject_to="A",
-        inject_at=10,
-        affect_loop=DelayLoopConfig(
-            delay=20,
-            times=1
-        ))
+        inject_to="A", inject_at=10, affect_loop=DelayLoopConfig(delay=20, times=1)
+    )
 
-    executor = Executor(graph=graph, stop_at=50,
-                        fault_injection_config=fault_injection_config)
+    executor = Executor(
+        graph=graph, stop_at=50, fault_injection_config=fault_injection_config
+    )
     executor.start(viz=False)
 
 

@@ -35,7 +35,7 @@ class Executor:
         graph: Graph,
         stop_at: int,
         output: str = os.path.expanduser("~/output.csv"),
-        fault_injection_config: FaultInjectionConfig | None = None
+        fault_injection_config: FaultInjectionConfig | None = None,
     ):
         self.output = output
         self.graph = graph
@@ -69,12 +69,10 @@ class Executor:
 
             # Initialize the figure and axis
             fig, ax = plt.subplots()
-            self.viz_nodes = nx.draw_networkx_nodes(
-                G, pos, node_color="#1f78b4", ax=ax)
+            self.viz_nodes = nx.draw_networkx_nodes(G, pos, node_color="#1f78b4", ax=ax)
             nx.draw_networkx_edges(G, pos, ax=ax)
             nx.draw_networkx_labels(G, pos, ax=ax)
-            FuncAnimation(fig, self._simulate_one_step,
-                          interval=100, blit=False)
+            FuncAnimation(fig, self._simulate_one_step, interval=100, blit=False)
             plt.show()
         else:
             with open(self.output, mode="a", newline="") as file:
@@ -118,8 +116,7 @@ class Executor:
                 event=sub, timestamp=cur_event.timestamp
             )
             if sub.valid_range[0] <= data <= sub.valid_range[1]:
-                cur_event.node.update_callback_feature(
-                    callback=sub.nominal_callback)
+                cur_event.node.update_callback_feature(callback=sub.nominal_callback)
                 self._execute_callback(sub.nominal_callback)
             else:
                 cur_event.node.update_callback_feature(
@@ -148,8 +145,7 @@ class Executor:
                     )
                     heapq.heappush(self.event_queue, new_event)
 
-    def _find_sub_config(
-            self, node: NodeConfig, topic: str) -> SubscriptionConfig:
+    def _find_sub_config(self, node: NodeConfig, topic: str) -> SubscriptionConfig:
         if not node.subscribe:
             raise ValueError(f"{node.name} doesn't subscribe to anything")
         for sub in node.subscribe:
@@ -161,32 +157,33 @@ class Executor:
         "get flattened feature list for the entire graph"
         return [item for node in self.graph.nodes.values() for item in node.feature]
 
-    def _validate_fault_injection_config(
-            self, config: FaultInjectionConfig) -> None:
+    def _validate_fault_injection_config(self, config: FaultInjectionConfig) -> None:
         self.loop_mutation = []
         self.sub_mutation = []
         self.pub_mutation = []
         node = config.inject_to
         if node not in self.graph.nodes.keys():
-            raise ValueError(
-                f"Cannot inject fault to non-existent node {node}")
+            raise ValueError(f"Cannot inject fault to non-existent node {node}")
         if config.affect_loop:
-            if node not in [
-                    n.config.name
-                    for n in self.graph.nodes_with_loops()]:
+            if node not in [n.config.name for n in self.graph.nodes_with_loops()]:
                 raise ValueError(
-                    f"Cannot inject loop fault to a node without loop: "
-                    "{node}")
+                    f"Cannot inject loop fault to a node without loop: " "{node}"
+                )
 
-        if config.affect_publish and node != self.graph.topic_publisher_map[
-                config.affect_publish.topic].config.name:
+        if (
+            config.affect_publish
+            and node
+            != self.graph.topic_publisher_map[config.affect_publish.topic].config.name
+        ):
             raise ValueError(
                 f"Cannot inject publish fault to "
-                "{node} since it doesn't publish to {config.affect_publish.topic}")
+                "{node} since it doesn't publish to {config.affect_publish.topic}"
+            )
         if config.affect_receive and node not in [
-                n.config.name
-                for n in self.graph.topic_subscriber_map
-                [config.affect_receive.topic]]:
+            n.config.name
+            for n in self.graph.topic_subscriber_map[config.affect_receive.topic]
+        ]:
             raise ValueError(
                 f"Cannot inject subscribe fault to "
-                "{node} since it doesn't subscribe to {config.affect_receive.topic}")
+                "{node} since it doesn't subscribe to {config.affect_receive.topic}"
+            )
