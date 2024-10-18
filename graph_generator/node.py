@@ -16,10 +16,11 @@ class PublishConfig:
 
 
 @dataclass
-class CallbackConfig():
+class CallbackConfig:
     """
     A CallbackConfig defines what to do when a node performs a work.
     """
+
     publish: List[PublishConfig] | None = None
 
 
@@ -95,14 +96,16 @@ class NodeFeatureTemplate:
     def initial_feature(self, config: NodeConfig):
         feature: List[Any] = [1] * len(NodeFeatureTemplate.FeatureIndex)
         feature[NodeFeatureTemplate.FeatureIndex.NODE_NAME_FEATURE_INDEX.value] = (
-            config.name)
+            config.name
+        )
         return feature
 
     def update_event_feature(
-            self, feature: List, event: LoopConfig | SubscriptionConfig,
-            timestamp: int):
+        self, feature: List, event: LoopConfig | SubscriptionConfig, timestamp: int
+    ):
         feature[NodeFeatureTemplate.FeatureIndex.EVENT_TYPE_FEATURE_INDEX.value] = (
-            NodeFeatureTemplate.EVENT_FEATURE_MAPPING[type(event)])
+            NodeFeatureTemplate.EVENT_FEATURE_MAPPING[type(event)]
+        )
         feature[
             NodeFeatureTemplate.FeatureIndex.EVENT_TIMESTAMP_FEATURE_INDEX.value
         ] = timestamp
@@ -118,7 +121,8 @@ class NodeFeatureTemplate:
         ),
     ):
         feature[NodeFeatureTemplate.FeatureIndex.CALLBACK_FEATURE_INDEX.value] = (
-            NodeFeatureTemplate.CALLBACK_FEATURE_MAPPING[type(callback)])
+            NodeFeatureTemplate.CALLBACK_FEATURE_MAPPING[type(callback)]
+        )
 
 
 class Node:
@@ -139,8 +143,7 @@ class Node:
         if not config.name or len(config.name) == 0:
             raise ValueError("Name must be provided for a node")
         if not config.loop and not config.subscribe:
-            raise ValueError(
-                "A node must have at least one loop or subscription")
+            raise ValueError("A node must have at least one loop or subscription")
         if config.subscribe and len(config.subscribe) == 0:
             raise ValueError("Subscribe config cannot be an empty list")
 

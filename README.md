@@ -22,6 +22,15 @@ cd ~/graph_generator
 bazel run //graph_generator:main
 ```
 
+# Lint
+
+Remember to apply lint before submitting PRs. The max line length for this repo is 88.
+
+```
+# At project root
+./lint.sh
+```
+
 # TODO
 
 0 - Proposal

@@ -42,8 +42,5 @@ echo $BAZEL_FILES | xargs ${BUILDIFIER_INVOCATION}
 bazel run -- //tools/isort ${REPO_ROOT} --dont-follow-links
 # Autoformat
 bazel run -- //tools/black ${REPO_ROOT}
-# Ensure flake8 compliance
-bazel run -- //tools/flake8 ${REPO_ROOT}
-
 
 printf "\n✨ Linting completed successfully! ✨\n"

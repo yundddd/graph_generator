@@ -38,9 +38,9 @@ graph_generator_py_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":fault_injection",
         ":graph",
         ":node",
-        ":fault_injection",
     ],
 )
 
