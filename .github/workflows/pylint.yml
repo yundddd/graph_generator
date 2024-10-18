@@ -16,8 +16,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Setup Bazel        
       uses: abhinavsingh/setup-bazel@v3
-    - name: pwd
-      run: pwd
+      with:
+        version: 7.3.0
     - name: Analysing the code with pylint
       run: |
         ./lint.sh
