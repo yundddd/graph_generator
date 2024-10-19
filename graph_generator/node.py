@@ -1,6 +1,15 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, List, Tuple
+
+from graph_generator.fault_injection import (
+    DelayLoopConfig,
+    DelayReceiveConfig,
+    DropLoopConfig,
+    DropReceiveConfig,
+    FaultInjectionConfig,
+)
 
 
 @dataclass
@@ -131,12 +140,89 @@ class Node:
         self.feature_template = NodeFeatureTemplate()
         self.feature = self.feature_template.initial_feature(self.config)
         Node._validate_config(config)
+        self.init_fault_injection_state()
 
     def update_event_feature(self, **kwarg):
         self.feature_template.update_event_feature(self.feature, **kwarg)
 
     def update_callback_feature(self, **kwarg):
         self.feature_template.update_callback_feature(self.feature, **kwarg)
+
+    def init_fault_injection_state(self):
+        self.fault_injection_config: FaultInjectionConfig | None = None
+        self.dropped_loop_count = 0
+        self.delayed_loop_count = 0
+        self.dropped_receive_count = defaultdict(int)
+
+    def drop_loop(self, cur_time: int):
+        print(f"    \033[91mNode: {self.config.name} dropped loop at {cur_time}\033[0m")
+        self.dropped_loop_count += 1
+
+    def delay_loop(self, next_time: int):
+        print(
+            "    \033[91mNode: "
+            f"{self.config.name} delayed loop to {next_time}\033[0m"
+        )
+        # Since we can only delay once, erase the config to avoid accounting.
+        self.fault_injection_config = None
+        pass
+
+    def drop_receive(self, topic: str):
+        print(
+            "    \033[91mNode: "
+            f"{self.config.name} dropped received message from topic "
+            f"{topic}\033[0m"
+        )
+        self.dropped_receive_count[topic] += 1
+
+    def delay_receive(self, topic: str):
+        print(
+            "    \033[91mNode: "
+            f"{self.config.name} delayed received message from topic "
+            f"{topic}\033[0m"
+        )
+        # Since we can only delay once, erase the config to avoid accounting.
+        self.fault_injection_config = None
+        pass
+
+    def should_drop_loop(self, cur_time: int):
+        return (
+            self.fault_injection_config
+            and self.fault_injection_config.affect_loop
+            and isinstance(self.fault_injection_config.affect_loop, DropLoopConfig)
+            and cur_time >= self.fault_injection_config.inject_at
+            and self.dropped_loop_count < self.fault_injection_config.affect_loop.times
+        )
+
+    def should_delay_loop(self, cur_time: int):
+        return (
+            self.fault_injection_config
+            and self.fault_injection_config.affect_loop
+            and isinstance(self.fault_injection_config.affect_loop, DelayLoopConfig)
+            and cur_time >= self.fault_injection_config.inject_at
+        )
+
+    def should_drop_receive(self, cur_time: int, topic: str):
+        return (
+            self.fault_injection_config
+            and self.fault_injection_config.affect_receive
+            and isinstance(
+                self.fault_injection_config.affect_receive, DropReceiveConfig
+            )
+            and cur_time >= self.fault_injection_config.inject_at
+            and self.dropped_receive_count[topic]
+            < self.fault_injection_config.affect_receive.times
+        )
+
+    def should_delay_receive(self, cur_time: int, topic: str):
+        return (
+            self.fault_injection_config
+            and self.fault_injection_config.affect_receive
+            and isinstance(
+                self.fault_injection_config.affect_receive, DelayReceiveConfig
+            )
+            and cur_time >= self.fault_injection_config.inject_at
+        )
 
     @staticmethod
     def _validate_config(config):
