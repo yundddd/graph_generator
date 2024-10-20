@@ -1,5 +1,11 @@
 from graph_generator.executor import Executor
-from graph_generator.fault_injection import DelayLoopConfig, FaultInjectionConfig
+from graph_generator.fault_injection import (
+    DelayLoopConfig,
+    DelayReceiveConfig,
+    DropLoopConfig,
+    DropReceiveConfig,
+    FaultInjectionConfig,
+)
 from graph_generator.graph import Graph
 from graph_generator.node import (
     InvalidInputCallbackConfig,
@@ -132,14 +138,28 @@ def main():
     graph.build_graph()
     print(graph.adjacency_list)
 
-    fault_injection_config = FaultInjectionConfig(
-        inject_to="A", inject_at=10, affect_loop=DelayLoopConfig(delay=20, times=1)
-    )
-
-    executor = Executor(
-        graph=graph, stop_at=50, fault_injection_config=fault_injection_config
-    )
-    executor.start(viz=False)
+    for fault_injection_config in [
+        FaultInjectionConfig(
+            inject_to="A", inject_at=20, affect_loop=DelayLoopConfig(delay=20)
+        ),
+        FaultInjectionConfig(
+            inject_to="B",
+            inject_at=20,
+            affect_receive=DropReceiveConfig(topic="topic1", times=3),
+        ),
+        FaultInjectionConfig(
+            inject_to="B",
+            inject_at=20,
+            affect_receive=DelayReceiveConfig(topic="topic1", delay=3),
+        ),
+        FaultInjectionConfig(
+            inject_to="A", inject_at=20, affect_loop=DropLoopConfig(times=3)
+        ),
+    ]:
+        executor = Executor(
+            graph=graph, stop_at=50, fault_injection_config=fault_injection_config
+        )
+        executor.start(viz=False)
 
 
 if __name__ == "__main__":
