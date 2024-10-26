@@ -33,6 +33,7 @@ def main():
         nodes = load_config('~/graph_generator/configs/basic_config.yaml')
     except LoadConfigError as e:
         print(f"Error: {e}")
+        exit(1)
 
     graph = Graph()
     for node in nodes:

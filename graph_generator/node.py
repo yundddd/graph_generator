@@ -250,9 +250,15 @@ class LoadConfigError(Exception):
     pass
 
 
+def convert_to_tuple(data: List[int]) -> Tuple[int, int]:
+    if not isinstance(data, list) or len(data) != 2:
+        raise LoadConfigError(f"Expected a list of two integers, got: {data}")
+    return tuple(data)
+
+
 def construct_publish_config(data: dict) -> PublishConfig:
-    data["value_range"] = tuple(data["value_range"])
-    data["delay_range"] = tuple(data["delay_range"])
+    data["value_range"] = convert_to_tuple(data["value_range"])
+    data["delay_range"] = convert_to_tuple(data["delay_range"])
     return PublishConfig(**data)
 
 
@@ -274,7 +280,7 @@ def construct_callback_config(data: dict) -> CallbackConfig:
 
 
 def construct_subscription_config(data: dict) -> SubscriptionConfig:
-    data["valid_range"] = tuple(data["valid_range"])
+    data["valid_range"] = convert_to_tuple(data["valid_range"])
     data["nominal_callback"] = construct_callback_config(data["nominal_callback"])
     data["invalid_input_callback"] = construct_callback_config(data["invalid_input_callback"])
     data["lost_input_callback"] = construct_callback_config(data["lost_input_callback"])
