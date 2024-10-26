@@ -9,7 +9,6 @@ from graph_generator.fault_injection import (
 from graph_generator.graph import Graph
 from graph_generator.node import (
     InvalidInputCallbackConfig,
-    load_config,
     LoopCallbackConfig,
     LoopConfig,
     LostInputCallbackConfig,
@@ -18,7 +17,9 @@ from graph_generator.node import (
     NominalCallbackConfig,
     PublishConfig,
     SubscriptionConfig,
+    load_config,
 )
+
 
 def main():
     """
@@ -30,7 +31,7 @@ def main():
   D       E
     """
     try:
-        nodes = load_config('~/graph_generator/configs/basic_config.yaml')
+        nodes = load_config("~/graph_generator/configs/basic_config.yaml")
     except LoadConfigError as e:
         print(f"Error: {e}")
         exit(1)
