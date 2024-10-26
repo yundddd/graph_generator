@@ -312,3 +312,4 @@ def load_config(file_path: str) -> List[NodeConfig]:
         if "nodes" not in config_data:
             raise LoadConfigError("Missing 'nodes' key in configuration file")
         return [construct_node_config(node) for node in config_data["nodes"]]
+
