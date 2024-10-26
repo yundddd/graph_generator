@@ -1,7 +1,9 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto
+import os
 from typing import Any, List, Tuple
+import yaml
 
 from graph_generator.fault_injection import (
     DelayLoopConfig,
@@ -238,3 +240,62 @@ class Node:
 
     def __str__(self):
         return f"Node: {self.config.name}"
+
+
+"""
+Load YAML configuration files and construct the appropriate configuration 
+objects for nodes, callbacks, and publishing in a messaging system.
+"""
+class LoadConfigError(Exception):
+    pass
+
+
+def construct_publish_config(data: dict) -> PublishConfig:
+    data["value_range"] = tuple(data["value_range"])
+    data["delay_range"] = tuple(data["delay_range"])
+    return PublishConfig(**data)
+
+
+def construct_callback_config(data: dict) -> CallbackConfig:
+    if "publish" in data:
+        data["publish"] = [construct_publish_config(pub) for pub in data["publish"]]
+    callback_type = data.pop("type", None)
+    if callback_type == "nominal":
+        return NominalCallbackConfig(**data)
+    elif callback_type == "invalid":
+        return InvalidInputCallbackConfig(**data)
+    elif callback_type == "lost":
+        return LostInputCallbackConfig(**data)
+    elif callback_type == "loop":
+        return LoopCallbackConfig(**data)
+    else:
+        raise LoadConfigError(f"Unsupported callback type: {callback_type}")
+    return CallbackConfig(**data)
+
+
+def construct_subscription_config(data: dict) -> SubscriptionConfig:
+    data["valid_range"] = tuple(data["valid_range"])
+    data["nominal_callback"] = construct_callback_config(data["nominal_callback"])
+    data["invalid_input_callback"] = construct_callback_config(data["invalid_input_callback"])
+    data["lost_input_callback"] = construct_callback_config(data["lost_input_callback"])
+    return SubscriptionConfig(**data)
+
+
+def construct_node_config(data: dict) -> NodeConfig:
+    if "loop" in data:
+        data["loop"]["callback"] = construct_callback_config(data["loop"]["callback"])
+        data["loop"] = LoopConfig(**data["loop"])
+    if "subscribe" in data:
+        data["subscribe"] = [construct_subscription_config(sub) for sub in data["subscribe"]]
+    return NodeConfig(**data)
+
+
+def load_config(file_path: str) -> List[NodeConfig]:
+    expanded_path = os.path.expanduser(file_path)
+    if not os.path.isfile(expanded_path):
+        raise LoadConfigError(f"Configuration file not found: {expanded_path}")
+    with open(expanded_path, 'r') as file:
+        config_data = yaml.safe_load(file)
+        if "nodes" not in config_data:
+            raise LoadConfigError("Missing 'nodes' key in configuration file")
+        return [construct_node_config(node) for node in config_data["nodes"]]
