@@ -58,7 +58,7 @@ class SubscriptionConfig:
     inputs from upstream.
     A watchdog is a mechanism for nodes to report faults when it hasn't heard from this
     topic for watchdog time units since last receive.
-    If the message is not received within watchdog time, the lost_input_callback wil be
+    If the message is not received within watchdog time, the lost_input_callback will be
     executed. This is useful to simulate handling dropped or delayed messages from upstream.
     """
 
