@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, List, Tuple
 
+from pydantic import BaseModel
+
 from graph_generator.fault_injection import (
     DelayLoopConfig,
     DelayReceiveConfig,
@@ -12,8 +14,7 @@ from graph_generator.fault_injection import (
 )
 
 
-@dataclass
-class PublishConfig:
+class PublishConfig(BaseModel):
     """
     PublishConfig defines that a node will publish to a topic with a value defined by
     value_range. The delay_range models any transmission delay (unit-less)
@@ -24,8 +25,7 @@ class PublishConfig:
     delay_range: Tuple[int, int] = (0, 0)
 
 
-@dataclass
-class CallbackConfig:
+class CallbackConfig(BaseModel):
     """
     A CallbackConfig defines what to do when a node performs a work.
     """
@@ -49,8 +49,7 @@ class LoopCallbackConfig(CallbackConfig):
     pass
 
 
-@dataclass
-class SubscriptionConfig:
+class SubscriptionConfig(BaseModel):
     """
     A SubscriptionConfig defines what a node does when it receives a message from a topic.
     If the received message is within the valid_range, it will execute a nominal_callback.
@@ -64,21 +63,19 @@ class SubscriptionConfig:
 
     topic: str
     valid_range: Tuple[int, int]
-    watchdog: int
+    watchdog: int | None = None
 
-    nominal_callback: NominalCallbackConfig
-    invalid_input_callback: InvalidInputCallbackConfig
-    lost_input_callback: LostInputCallbackConfig
+    nominal_callback: NominalCallbackConfig | None = None
+    invalid_input_callback: InvalidInputCallbackConfig | None = None
+    lost_input_callback: LostInputCallbackConfig | None = None
 
 
-@dataclass
-class LoopConfig:
+class LoopConfig(BaseModel):
     period: int
     callback: CallbackConfig
 
 
-@dataclass
-class NodeConfig:
+class NodeConfig(BaseModel):
     name: str
     loop: LoopConfig | None = None
     subscribe: List[SubscriptionConfig] | None = None
@@ -191,7 +188,7 @@ class Node:
             and self.fault_injection_config.affect_loop
             and isinstance(self.fault_injection_config.affect_loop, DropLoopConfig)
             and cur_time >= self.fault_injection_config.inject_at
-            and self.dropped_loop_count < self.fault_injection_config.affect_loop.times
+            and self.dropped_loop_count < self.fault_injection_config.affect_loop.drop
         )
 
     def should_delay_loop(self, cur_time: int):
@@ -211,7 +208,7 @@ class Node:
             )
             and cur_time >= self.fault_injection_config.inject_at
             and self.dropped_receive_count[topic]
-            < self.fault_injection_config.affect_receive.times
+            < self.fault_injection_config.affect_receive.drop
         )
 
     def should_delay_receive(self, cur_time: int, topic: str):

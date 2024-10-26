@@ -1,25 +1,38 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import networkx as nx
+from pydantic import BaseModel
 
-from graph_generator.node import CallbackConfig, Node
+from graph_generator.node import CallbackConfig, Node, NodeConfig
+
+
+@dataclass
+class GraphConfig(BaseModel):
+    nodes: List[NodeConfig]
 
 
 class Graph:
-    def __init__(self):
+    def __init__(self, config: GraphConfig):
+        self.config = config
         self.nodes = dict()
         self.topic_publisher_map = dict()
         self.topic_subscriber_map = defaultdict(list)
         self.adjacency_list = defaultdict(list)
 
-    def add_node(self, node: Node):
+        for node in config.nodes:
+            self._add_node(Node(node))
+
+        self._build_graph()
+
+    def _add_node(self, node: Node):
         if node.config.name in self.nodes.keys():
             raise ValueError(f"Node name must be unique: {node.config.name}")
         self.nodes[node.config.name] = node
 
-    def build_graph(self):
+    def _build_graph(self):
         for _, node in self.nodes.items():
             if node.config.loop:
                 loop = node.config.loop
@@ -31,9 +44,14 @@ class Graph:
             if node.config.subscribe:
                 for sub in node.config.subscribe:
                     self._add_subscriber(topic=sub.topic, subscriber=node)
-                    self._add_publisher_from_callback(node, sub.nominal_callback)
-                    self._add_publisher_from_callback(node, sub.invalid_input_callback)
-                    self._add_publisher_from_callback(node, sub.lost_input_callback)
+                    if sub.nominal_callback:
+                        self._add_publisher_from_callback(node, sub.nominal_callback)
+                    if sub.invalid_input_callback:
+                        self._add_publisher_from_callback(
+                            node, sub.invalid_input_callback
+                        )
+                    if sub.lost_input_callback:
+                        self._add_publisher_from_callback(node, sub.lost_input_callback)
 
         for topic, publisher in self.topic_publisher_map.items():
             for subscriber in self.topic_subscriber_map[topic]:

@@ -1,0 +1,63 @@
+nodes:
+  - name: A
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: topic1
+            value_range: [0, 10]
+            delay_range: [0, 2]
+
+  - name: B
+    subscribe:
+      - topic: topic1
+        valid_range: [0, 10]
+        watchdog: 2
+        nominal_callback:
+          publish:
+            - topic: topic2
+              value_range: [1, 10]
+              delay_range: [0, 2]
+        invalid_input_callback:
+          publish:
+            - topic: topic2
+              value_range: [10, 20]
+              delay_range: [0, 2]
+        lost_input_callback:
+          publish:
+            - topic: topic2
+              value_range: [20, 30]
+              delay_range: [0, 2]
+
+  - name: C
+    subscribe:
+      - topic: topic1
+        valid_range: [0, 10]
+        watchdog: 2
+        nominal_callback:
+          publish:
+            - topic: topic3
+              value_range: [1, 10]
+              delay_range: [0, 2]
+        invalid_input_callback:
+          publish:
+            - topic: topic3
+              value_range: [10, 20]
+              delay_range: [0, 2]
+        lost_input_callback:
+          publish:
+            - topic: topic3
+              value_range: [20, 30]
+              delay_range: [0, 2]
+
+  - name: D
+    subscribe:
+      - topic: topic2
+        valid_range: [0, 10]
+        watchdog: 2
+
+  - name: E
+    subscribe:
+      - topic: topic3
+        valid_range: [0, 10]
+        watchdog: 2

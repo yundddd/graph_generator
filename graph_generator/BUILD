@@ -8,18 +8,20 @@ graph_generator_py_library(
         "node.py",
     ],
     visibility = ["//visibility:public"],
-    deps = [requirement("PyYAML")],
+    deps = [requirement("pydantic")],
 )
 
 graph_generator_py_library(
     name = "graph",
     srcs = [
         "graph.py",
+        ":node",
     ],
     visibility = ["//visibility:public"],
     deps = [
         requirement("networkx"),
         requirement("matplotlib"),
+        requirement("pydantic"),
     ],
 )
 
@@ -29,6 +31,9 @@ graph_generator_py_library(
         "fault_injection.py",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        requirement("pydantic"),
+    ],
 )
 
 graph_generator_py_library(
@@ -49,12 +54,16 @@ graph_generator_py_binary(
     srcs = [
         "main.py",
     ],
+    data = [
+        "//graph_generator/config:example_fault_injection",
+        "//graph_generator/config:graph",
+    ],
     main = "main.py",
     visibility = ["//visibility:public"],
     deps = [
         ":executor",
         ":graph",
-        ":node",
+        requirement("PyYAML"),
     ],
 )
 

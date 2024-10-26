@@ -1,0 +1,5 @@
+inject_to: B
+inject_at: 20
+affect_receive:
+  topic: topic1
+  drop: 3

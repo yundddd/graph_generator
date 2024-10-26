@@ -1,30 +1,34 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class DropPublishConfig:
+class DropPublishConfig(BaseModel):
+    """
+    This config describes which topic to drop and how many times.
+    """
+
     topic: str
-    times: int
+    drop: int
 
 
-@dataclass
-class MutatePublishConfig:
+class MutatePublishConfig(BaseModel):
+    """
+    This config describes which topic to mutate and how many times.
+    """
+
     topic: str
     value: int
 
 
-@dataclass
-class DropReceiveConfig:
+class DropReceiveConfig(BaseModel):
     """
     This config describes which topic to drop received messages from and how many times.
     """
 
     topic: str
-    times: int
+    drop: int
 
 
-@dataclass
-class DelayReceiveConfig:
+class DelayReceiveConfig(BaseModel):
     """
     This config describes which topic to delay a received message.
     It only delays a single instance.
@@ -34,8 +38,7 @@ class DelayReceiveConfig:
     delay: int
 
 
-@dataclass
-class DelayLoopConfig:
+class DelayLoopConfig(BaseModel):
     """
     This config describes how long to delay a loop work. Subsequent loop work will also contain the same phase shift.
      For example if a node nominally execute periodic work as:
@@ -50,8 +53,7 @@ class DelayLoopConfig:
     delay: int
 
 
-@dataclass
-class DropLoopConfig:
+class DropLoopConfig(BaseModel):
     """
     This config describes the number of times to drop periodic work.
     We will still schedule subsequent periodic work with the same phase.
@@ -64,11 +66,10 @@ class DropLoopConfig:
     A single config can only delay work once
     """
 
-    times: int
+    drop: int
 
 
-@dataclass
-class FaultInjectionConfig:
+class FaultInjectionConfig(BaseModel):
     # target node name
     inject_to: str
     # when to inject

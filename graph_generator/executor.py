@@ -191,11 +191,15 @@ class Executor:
         print(f"    {cur_event.node} executing subscription callback")
         cur_event.node.update_event_feature(event=sub, timestamp=cur_event.timestamp)
         if sub.valid_range[0] <= data <= sub.valid_range[1]:
-            cur_event.node.update_callback_feature(callback=sub.nominal_callback)
-            self._execute_callback(sub.nominal_callback)
+            if sub.nominal_callback:
+                cur_event.node.update_callback_feature(callback=sub.nominal_callback)
+                self._execute_callback(sub.nominal_callback)
         else:
-            cur_event.node.update_callback_feature(callback=sub.invalid_input_callback)
-            self._execute_callback(sub.invalid_input_callback)
+            if sub.invalid_input_callback:
+                cur_event.node.update_callback_feature(
+                    callback=sub.invalid_input_callback
+                )
+                self._execute_callback(sub.invalid_input_callback)
 
         return True
 
