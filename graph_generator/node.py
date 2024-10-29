@@ -190,6 +190,8 @@ class Node:
         self.config = config
         self.feature_template = NodeFeatureTemplate()
         self.feature = self.feature_template.initial_feature(self.config)
+        # Time when the last message was received for a topic.
+        self.message_received = defaultdict(int)
         Node._validate_config(config)
         self.init_fault_injection_state()
 
@@ -277,6 +279,9 @@ class Node:
             )
             and cur_time >= self.fault_injection_config.inject_at
         )
+
+    def receive_message(self, cur_time: int, topic: str):
+        self.message_received[topic] = cur_time
 
     @staticmethod
     def _validate_config(config):

@@ -12,7 +12,7 @@ nodes:
     subscribe:
       - topic: topic1
         valid_range: [0, 10]
-        watchdog: 2
+        watchdog: 15
         nominal_callback:
           publish:
             - topic: topic2
@@ -33,7 +33,7 @@ nodes:
     subscribe:
       - topic: topic1
         valid_range: [0, 10]
-        watchdog: 2
+        watchdog: 15
         nominal_callback:
           publish:
             - topic: topic3
@@ -54,10 +54,10 @@ nodes:
     subscribe:
       - topic: topic2
         valid_range: [0, 10]
-        watchdog: 2
+        watchdog: 20
 
   - name: E
     subscribe:
       - topic: topic3
         valid_range: [0, 10]
-        watchdog: 2
+        watchdog: 20
