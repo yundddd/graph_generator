@@ -40,10 +40,19 @@ class Executor:
         *,
         graph: Graph,
         stop_at: int,
-        output: str = os.path.expanduser("~/output.csv"),
+        output: str | None = None,
         fault_injection_config: FaultInjectionConfig | None = None,
     ):
-        self.output = output
+        """
+        Initializes the Executor with the given graph, stop time, optional output file,
+        and optional fault injection configuration.
+
+        Args:
+            graph (Graph): The graph to be executed.
+            stop_at (int): The simulation stop time.
+            output (str | None, optional): The output file path for logging results. Defaults to None.
+            fault_injection_config (FaultInjectionConfig | None, optional): Configuration for fault injection. Defaults to None.
+        """
         self.graph = graph
         self.stop_at = stop_at
         if fault_injection_config:
@@ -58,11 +67,21 @@ class Executor:
         ]
         heapq.heapify(self.event_queue)
         self.current_time = -1
-        if os.path.exists(output):
-            os.remove(output)
+        self.output = None
+        if output:
+            self.output = os.path.expanduser(output)
+            if os.path.exists(output):
+                os.remove(output)
         random.seed(24)
 
     def start(self, viz: bool = False):
+        """
+        Starts the simulation. If `viz` is True, displays the simulation graphically using matplotlib.
+        If `output` is specified, logs the simulation results to the specified file.
+
+        Args:
+            viz (bool, optional): Whether to display the simulation graphically. Defaults to False.
+        """
         self._print_sim_summary()
         if viz:
             G = nx.DiGraph()
@@ -85,13 +104,18 @@ class Executor:
 
             plt.show()
         else:
-            with open(self.output, mode="a", newline="") as file:
-                writer = csv.writer(file)
+            if self.output:
+                with open(self.output, mode="a", newline="") as file:
+                    writer = csv.writer(file)
+                    while len(self.event_queue):
+                        if self._simulate_one_step():
+                            flattened_features = self._get_all_node_features()
+                            # Each row corresponds to each graph feature snapshots
+                            writer.writerow(flattened_features)
+            else:
+                # just run the simulation without writing to a file
                 while len(self.event_queue):
-                    if self._simulate_one_step():
-                        flattened_features = self._get_all_node_features()
-                        # Each row corresponds to each graph feature snapshots
-                        writer.writerow(flattened_features)
+                    self._simulate_one_step()
 
     def _simulate_one_step(self, frame=None):
         """
@@ -155,7 +179,7 @@ class Executor:
         # Execute callback for this loop:
         print(f"    {cur_event.node} executing loop callback")
         cur_event.node.update_event_feature(event=loop, timestamp=cur_event.timestamp)
-        self._execute_callback(loop.callback)
+        self._execute_callback(cur_event.node, loop.callback)
         return True
 
     def _handle_subscription_work(self, cur_event: Event):
@@ -193,13 +217,13 @@ class Executor:
         if sub.valid_range[0] <= data <= sub.valid_range[1]:
             if sub.nominal_callback:
                 cur_event.node.update_callback_feature(callback=sub.nominal_callback)
-                self._execute_callback(sub.nominal_callback)
+                self._execute_callback(cur_event.node, sub.nominal_callback)
         else:
             if sub.invalid_input_callback:
                 cur_event.node.update_callback_feature(
                     callback=sub.invalid_input_callback
                 )
-                self._execute_callback(sub.invalid_input_callback)
+                self._execute_callback(cur_event.node, sub.invalid_input_callback)
 
         return True
 
@@ -213,9 +237,10 @@ class Executor:
         cur_event.timestamp = next_time
         heapq.heappush(self.event_queue, cur_event)
 
-    def _execute_callback(self, callback: CallbackConfig):
+    def _execute_callback(self, node: Node, callback: CallbackConfig):
         if callback.publish:
             for pub in callback.publish:
+                node.update_publish_feature()
                 # publish message to all subscribers of this topic
                 for sub_node in self.graph.topic_subscribers(pub.topic):
                     print(f"        publish to {sub_node.config.name}")

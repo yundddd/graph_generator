@@ -24,20 +24,27 @@ def main():
     """
     graph = Graph(config_from_yaml("graph_generator/config/graph.yaml", GraphConfig))
 
-    for fault_injection_config in [
-        config_from_yaml(
-            "graph_generator/config/delay_loop.yaml", FaultInjectionConfig
-        ),
-        config_from_yaml(
-            "graph_generator/config/delay_receive.yaml", FaultInjectionConfig
-        ),
-        config_from_yaml("graph_generator/config/drop_loop.yaml", FaultInjectionConfig),
-        config_from_yaml(
-            "graph_generator/config/drop_receive.yaml", FaultInjectionConfig
-        ),
-    ]:
+    for i, fault_injection_config in enumerate(
+        [
+            config_from_yaml(
+                "graph_generator/config/delay_loop.yaml", FaultInjectionConfig
+            ),
+            config_from_yaml(
+                "graph_generator/config/delay_receive.yaml", FaultInjectionConfig
+            ),
+            config_from_yaml(
+                "graph_generator/config/drop_loop.yaml", FaultInjectionConfig
+            ),
+            config_from_yaml(
+                "graph_generator/config/drop_receive.yaml", FaultInjectionConfig
+            ),
+        ]
+    ):
         executor = Executor(
-            graph=graph, stop_at=50, fault_injection_config=fault_injection_config
+            graph=graph,
+            stop_at=50,
+            fault_injection_config=fault_injection_config,
+            output="~/log" + str(i) + ".csv",
         )
         executor.start(viz=False)
 
