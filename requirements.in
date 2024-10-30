@@ -11,3 +11,4 @@ PyYAML==6.0.2
 torch==2.4.0
 torch-geometric==2.6.1
 pydantic==2.9.2
+click

@@ -63,6 +63,7 @@ graph_generator_py_binary(
     deps = [
         ":executor",
         ":graph",
+        requirement("click"),
         requirement("PyYAML"),
     ],
 )

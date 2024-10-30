@@ -1,3 +1,5 @@
+import csv
+import os
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, List
@@ -26,6 +28,21 @@ class Graph:
             self._add_node(Node(node))
 
         self._build_graph()
+
+    def dump_edge_index(self, output: str):
+        output = os.path.expanduser(output)
+        if os.path.exists(output):
+            os.remove(output)
+        node_to_index = {node: i for i, node in enumerate(self.nodes.values())}
+
+        with open(output, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            for src, dests in self.adjacency_list.items():
+                for dest in dests:
+                    writer.writerow([node_to_index[src], node_to_index[dest]])
+
+    def node_index(self, name: str) -> int:
+        return list(self.nodes.values()).index(self.nodes[name])
 
     def _add_node(self, node: Node):
         if node.config.name in self.nodes.keys():

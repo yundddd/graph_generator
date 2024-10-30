@@ -3324,7 +3324,7 @@
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "vL0VK1eNAQueVr4r2egxRs8hreExTh7sgYOM6hIg/gE=",
         "recordedFileInputs": {
-          "@@//requirements_lock.txt": "687a915753acf8c97a9d96be8d371dea2535cecb8b645de492a97ea6b8d4fed3"
+          "@@//requirements_lock.txt": "59ce9d2bea1091dd52039173ee98acc701a4b222e70549ca9487338d60cfdabf"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
