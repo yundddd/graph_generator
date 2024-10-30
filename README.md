@@ -18,8 +18,26 @@ See `graph_generator/main` for a default graph.
 Execute the following command to generate an execution graph based on the defined structure:
 
 ```
+# ensure we are at the repo root
 cd ~/graph_generator
-bazel run //graph_generator:main
+```
+
+Dump the edge index for the graph defined by graph.yaml to a file:
+
+```
+bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --edge_index_output ~/edge
+```
+
+Run graph executor based on graph.yaml and stop at time unit 50, save node features to a file:
+
+```
+bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --stop 50
+```
+
+Run graph executor twice. The first run injects a fault specified in delay_loop.yaml. The second time injects a fault specified in delay_receive.yaml. The output file name will be appended with monotonically increasing integer. For example, ~/out1 corresponds to the first run and ~/out2 corresponds to the second run.
+
+```
+bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --fault graph_generator/config/delay_loop.yaml --fault graph_generator/config/delay_receive.yaml
 ```
 
 # Lint
