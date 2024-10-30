@@ -30,9 +30,18 @@ def config_from_yaml(config_path: str, config_class: Type[T]) -> T:
     default=None,
 )
 @click.option(
+    "--fault_label_output",
+    help="Path to save fault injection information. The output file will contain "
+    "a single line in the form of node_index,fault_injection_time. The "
+    "node_index corresponds to the node that was injected with the fault and the value"
+    "is consistent with the edge index output.",
+)
+@click.option(
     "--node_feature_output",
-    help="Path to save graph node feature. Each line of the output contains all nodes' features, "
-    "in the order that is consistent with the edge index output.",
+    help="Path to save graph node feature. Each line of the output contains all nodes' "
+    "features, in the order that is consistent with the edge index output. This must "
+    "be specified if --fault option is used",
+    default=None,
 )
 def main(
     graph: str,
@@ -40,7 +49,8 @@ def main(
     viz: bool,
     stop: int,
     edge_index_output: str,
-    node_feature_output: str,
+    node_feature_output: str | None,
+    fault_label_output: str,
 ):
     """
       A
@@ -49,6 +59,9 @@ def main(
    /     \
   D       E
     """
+    if fault and not fault_label_output:
+        raise ValueError("Must specify --fault_label_output when using --fault")
+
     graph_obj = Graph(config_from_yaml(graph, GraphConfig))
     if edge_index_output:
         # dump edge index for the specified graph and terminate.
@@ -68,9 +81,16 @@ def main(
                 graph=graph_obj,
                 stop_at=stop,
                 fault_injection_config=fault_injection_config,
-                output=node_feature_output + "_" + str(i),
+                output=(
+                    node_feature_output + "_" + str(i) if node_feature_output else None
+                ),
             )
             executor.start(viz=viz)
+
+            fault_injection_config.dump(
+                index=graph_obj.node_index(fault_injection_config.inject_to),
+                output=fault_label_output + "_" + str(i),
+            )
     else:
         executor = Executor(
             graph=graph_obj,

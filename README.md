@@ -34,10 +34,10 @@ Run graph executor based on graph.yaml and stop at time unit 50, save node featu
 bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --stop 50
 ```
 
-Run graph executor twice. The first run injects a fault specified in delay_loop.yaml. The second time injects a fault specified in delay_receive.yaml. The output file name will be appended with monotonically increasing integer. For example, ~/out1 corresponds to the first run and ~/out2 corresponds to the second run.
+Run graph executor twice. The first run injects a fault specified in delay\*loop.yaml. The second time injects a fault specified in delay_receive.yaml. The output file name will be appended with monotonically increasing integer. For example, ~/out1 corresponds to the first run and ~/out2 corresponds to the second run. The --fault_label_output must be specified to capture where and when a fault was injected. The output file will also be appended with monotonically increasing integer and it's content contains a single line in the form of node_index,fault_injection_time.
 
 ```
-bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --fault graph_generator/config/delay_loop.yaml --fault graph_generator/config/delay_receive.yaml
+bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --fault graph_generator/config/delay_loop.yaml --fault graph_generator/config/delay_receive.yaml --fault_label_output ~/fault_label
 ```
 
 # Lint

@@ -41,6 +41,9 @@ class Graph:
                 for dest in dests:
                     writer.writerow([node_to_index[src], node_to_index[dest]])
 
+    def node_index(self, name: str) -> int:
+        return list(self.nodes.values()).index(self.nodes[name])
+
     def _add_node(self, node: Node):
         if node.config.name in self.nodes.keys():
             raise ValueError(f"Node name must be unique: {node.config.name}")

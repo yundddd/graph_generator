@@ -1,3 +1,6 @@
+import csv
+import os
+
 from pydantic import BaseModel
 
 
@@ -77,3 +80,23 @@ class FaultInjectionConfig(BaseModel):
     affect_publish: DropPublishConfig | MutatePublishConfig | None = None
     affect_receive: DropReceiveConfig | DelayReceiveConfig | None = None
     affect_loop: DelayLoopConfig | DropLoopConfig | None = None
+
+    def dump(self, index: int, output: str):
+        """
+        Dump the fault injection event to a CSV file.
+
+        The CSV file will have two columns: index and time. The index
+        represents the node index that was injected, and the time
+        represents when the event was injected.
+
+        If the file already exists, it will be overwritten.
+
+        :param index: The index of the node (usually from Graph.node_index).
+        :param output: The path to the output file.
+        """
+        output = os.path.expanduser(output)
+        if os.path.exists(output):
+            os.remove(output)
+        with open(output, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([index, self.inject_at])
