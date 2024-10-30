@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -80,13 +82,51 @@ class NodeConfig(BaseModel):
     loop: LoopConfig | None = None
     subscribe: List[SubscriptionConfig] | None = None
 
+    @staticmethod
+    def num_publications(config: NodeConfig) -> int:
+        """
+        Calculates the total number of publications for a given node configuration.
+
+        This method counts the number of topics a node will publish to, based on its loop
+        callback and subscription callbacks. It adds up the number of topics published by
+        the loop callback, and for each subscription, it includes publications from the
+        nominal, invalid input, and lost input callbacks.
+
+        Args:
+            config (NodeConfig): The configuration of the node, including its loop and subscriptions.
+
+        Returns:
+            int: The total number of publications for the node.
+        """
+        ret = 0
+        if config.loop:
+            ret = len(config.loop.callback.publish)
+        if config.subscribe:
+            for sub in config.subscribe:
+                if sub.nominal_callback:
+                    ret += len(sub.nominal_callback.publish)
+                if sub.invalid_input_callback:
+                    ret += len(sub.invalid_input_callback.publish)
+                if sub.lost_input_callback:
+                    ret += len(sub.lost_input_callback.publish)
+        return ret
+
 
 class NodeFeatureTemplate:
     class FeatureIndex(Enum):
-        NODE_NAME_FEATURE_INDEX = 0
-        EVENT_TIMESTAMP_FEATURE_INDEX = 1
-        EVENT_TYPE_FEATURE_INDEX = 2
-        CALLBACK_FEATURE_INDEX = 3
+        # static features (constant based on node config):
+        NODE_NAME = 0
+        NUM_SUBSCRIPTIONS = auto()
+        NUM_PUBLICATIONS = auto()
+        LOOP_PERIOD = auto()
+
+        # dynamic features (changes at runtime)
+        LAST_EVENT_TIMESTAMP = auto()
+        LAST_EVENT_TYPE = auto()
+        CALLBACK_TYPE = auto()
+        LOOP_COUNT = auto()
+        SUBSCRIPTION_TOTAL_COUNT = auto()
+        PUBLISH_COUNT = auto()
 
     EVENT_FEATURE_MAPPING = {
         LoopConfig: 2,
@@ -101,20 +141,34 @@ class NodeFeatureTemplate:
 
     def initial_feature(self, config: NodeConfig):
         feature: List[Any] = [1] * len(NodeFeatureTemplate.FeatureIndex)
-        feature[NodeFeatureTemplate.FeatureIndex.NODE_NAME_FEATURE_INDEX.value] = (
-            config.name
+        feature[NodeFeatureTemplate.FeatureIndex.NODE_NAME.value] = config.name
+        feature[NodeFeatureTemplate.FeatureIndex.LOOP_PERIOD.value] = (
+            config.loop.period if config.loop else 0
+        )
+        feature[NodeFeatureTemplate.FeatureIndex.NUM_SUBSCRIPTIONS.value] = (
+            len(config.subscribe) if config.subscribe else 0
+        )
+        feature[NodeFeatureTemplate.FeatureIndex.NUM_PUBLICATIONS.value] = (
+            NodeConfig.num_publications(config)
         )
         return feature
 
     def update_event_feature(
         self, feature: List, event: LoopConfig | SubscriptionConfig, timestamp: int
     ):
-        feature[NodeFeatureTemplate.FeatureIndex.EVENT_TYPE_FEATURE_INDEX.value] = (
+        feature[NodeFeatureTemplate.FeatureIndex.LAST_EVENT_TYPE.value] = (
             NodeFeatureTemplate.EVENT_FEATURE_MAPPING[type(event)]
         )
-        feature[
-            NodeFeatureTemplate.FeatureIndex.EVENT_TIMESTAMP_FEATURE_INDEX.value
-        ] = timestamp
+        feature[NodeFeatureTemplate.FeatureIndex.LAST_EVENT_TIMESTAMP.value] = timestamp
+        if isinstance(event, LoopConfig):
+            feature[NodeFeatureTemplate.FeatureIndex.LOOP_COUNT.value] += 1
+        else:
+            feature[
+                NodeFeatureTemplate.FeatureIndex.SUBSCRIPTION_TOTAL_COUNT.value
+            ] += 1
+
+    def update_publish_feature(self, feature: List):
+        feature[NodeFeatureTemplate.FeatureIndex.PUBLISH_COUNT.value] += 1
 
     def update_callback_feature(
         self,
@@ -126,7 +180,7 @@ class NodeFeatureTemplate:
             | LoopCallbackConfig
         ),
     ):
-        feature[NodeFeatureTemplate.FeatureIndex.CALLBACK_FEATURE_INDEX.value] = (
+        feature[NodeFeatureTemplate.FeatureIndex.CALLBACK_TYPE.value] = (
             NodeFeatureTemplate.CALLBACK_FEATURE_MAPPING[type(callback)]
         )
 
@@ -136,11 +190,16 @@ class Node:
         self.config = config
         self.feature_template = NodeFeatureTemplate()
         self.feature = self.feature_template.initial_feature(self.config)
+        # Time when the last message was received for a topic.
+        self.message_received = defaultdict(int)
         Node._validate_config(config)
         self.init_fault_injection_state()
 
     def update_event_feature(self, **kwarg):
         self.feature_template.update_event_feature(self.feature, **kwarg)
+
+    def update_publish_feature(self, **kwarg):
+        self.feature_template.update_publish_feature(self.feature, **kwarg)
 
     def update_callback_feature(self, **kwarg):
         self.feature_template.update_callback_feature(self.feature, **kwarg)
@@ -220,6 +279,9 @@ class Node:
             )
             and cur_time >= self.fault_injection_config.inject_at
         )
+
+    def receive_message(self, cur_time: int, topic: str):
+        self.message_received[topic] = cur_time
 
     @staticmethod
     def _validate_config(config):

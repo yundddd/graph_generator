@@ -28,10 +28,39 @@ from graph_generator.node import (
 
 @dataclass(order=True)
 class Event:
+    """
+    This class represents an event in the event queue. All events are first
+    ordered by the timestamp. To break ties, use the node config as well as
+    the even priority.
+    """
+
+    @dataclass
+    class WatchDogConfig:
+        sub: SubscriptionConfig
+
+    # The timestamp of this event
     timestamp: int
+    # The associated Node for this event, which will perform some work
     node: Node
-    work: LoopConfig | SubscriptionConfig
+    work_priority: int = 0
+
+    # The type of the work to be performed.
+    work: LoopConfig | SubscriptionConfig | WatchDogConfig | None = None
+    # The data associated with the subscription. If the work type is WatchDog,
+    # this is the last received time of the subscription.
     subscription_data: int | None = None
+
+    def __post_init__(self):
+        # Define a priority for each work type
+        work_type_priority = {
+            LoopConfig: 0,
+            SubscriptionConfig: 1,
+            Event.WatchDogConfig: 2,
+        }
+        assert self.work
+        object.__setattr__(
+            self, "work_priority", work_type_priority.get(type(self.work), -1)
+        )
 
 
 class Executor:
@@ -40,10 +69,20 @@ class Executor:
         *,
         graph: Graph,
         stop_at: int,
-        output: str = os.path.expanduser("~/output.csv"),
+        output: str | None = None,
         fault_injection_config: FaultInjectionConfig | None = None,
     ):
-        self.output = output
+        """
+        Initializes the Executor with the given graph, stop time, optional output file,
+        and optional fault injection configuration.
+
+        Args:
+            graph (Graph): The graph to be executed.
+            stop_at (int): The simulation stop time.
+            output (str | None, optional): The output file path for logging results. Defaults to None.
+            fault_injection_config (FaultInjectionConfig | None, optional): Configuration for fault injection. Defaults to None.
+        """
+        self.current_time = 0
         self.graph = graph
         self.stop_at = stop_at
         if fault_injection_config:
@@ -56,13 +95,29 @@ class Executor:
             for node in nodes_with_loop
             if node.config.loop
         ]
+        # Enqueue all the subscription watchdog
+        for node in graph.nodes.values():
+            if node.config.subscribe:
+                for sub in node.config.subscribe:
+                    self._maybe_enqueue_watchdog_work(node, sub)
+
         heapq.heapify(self.event_queue)
-        self.current_time = -1
-        if os.path.exists(output):
-            os.remove(output)
+
+        self.output = None
+        if output:
+            self.output = os.path.expanduser(output)
+            if os.path.exists(output):
+                os.remove(output)
         random.seed(24)
 
     def start(self, viz: bool = False):
+        """
+        Starts the simulation. If `viz` is True, displays the simulation graphically using matplotlib.
+        If `output` is specified, logs the simulation results to the specified file.
+
+        Args:
+            viz (bool, optional): Whether to display the simulation graphically. Defaults to False.
+        """
         self._print_sim_summary()
         if viz:
             G = nx.DiGraph()
@@ -85,13 +140,18 @@ class Executor:
 
             plt.show()
         else:
-            with open(self.output, mode="a", newline="") as file:
-                writer = csv.writer(file)
+            if self.output:
+                with open(self.output, mode="a", newline="") as file:
+                    writer = csv.writer(file)
+                    while len(self.event_queue):
+                        if self._simulate_one_step():
+                            flattened_features = self._get_all_node_features()
+                            # Each row corresponds to each graph feature snapshots
+                            writer.writerow(flattened_features)
+            else:
+                # just run the simulation without writing to a file
                 while len(self.event_queue):
-                    if self._simulate_one_step():
-                        flattened_features = self._get_all_node_features()
-                        # Each row corresponds to each graph feature snapshots
-                        writer.writerow(flattened_features)
+                    self._simulate_one_step()
 
     def _simulate_one_step(self, frame=None):
         """
@@ -118,7 +178,12 @@ class Executor:
         if isinstance(cur_event.work, LoopConfig):
             return self._handle_loop_work(cur_event)
 
-        return self._handle_subscription_work(cur_event)
+        elif isinstance(cur_event.work, SubscriptionConfig):
+            return self._handle_subscription_work(cur_event)
+        elif isinstance(cur_event.work, Event.WatchDogConfig):
+            return self._handle_watchdog_work(cur_event)
+        else:
+            assert False, "Unknown work type"
 
     def _handle_loop_work(self, cur_event: Event):
         loop = cur_event.work
@@ -155,7 +220,7 @@ class Executor:
         # Execute callback for this loop:
         print(f"    {cur_event.node} executing loop callback")
         cur_event.node.update_event_feature(event=loop, timestamp=cur_event.timestamp)
-        self._execute_callback(loop.callback)
+        self._execute_callback(cur_event.node, loop.callback)
         return True
 
     def _handle_subscription_work(self, cur_event: Event):
@@ -189,19 +254,34 @@ class Executor:
             return False
 
         print(f"    {cur_event.node} executing subscription callback")
+        cur_event.node.receive_message(self.current_time, sub.topic)
         cur_event.node.update_event_feature(event=sub, timestamp=cur_event.timestamp)
         if sub.valid_range[0] <= data <= sub.valid_range[1]:
             if sub.nominal_callback:
                 cur_event.node.update_callback_feature(callback=sub.nominal_callback)
-                self._execute_callback(sub.nominal_callback)
+                self._execute_callback(cur_event.node, sub.nominal_callback)
         else:
             if sub.invalid_input_callback:
                 cur_event.node.update_callback_feature(
                     callback=sub.invalid_input_callback
                 )
-                self._execute_callback(sub.invalid_input_callback)
+                self._execute_callback(cur_event.node, sub.invalid_input_callback)
 
+        # Enqueue the next watchdog work, if it has one.
+        self._maybe_enqueue_watchdog_work(cur_event.node, sub)
         return True
+
+    def _handle_watchdog_work(self, cur_event: Event):
+        watchdog = cur_event.work
+        assert isinstance(watchdog, Event.WatchDogConfig)
+        data = cur_event.subscription_data
+        assert data is not None
+        if cur_event.node.message_received[watchdog.sub.topic] == data:
+            # If last message receipt time is still the same when the watchdog
+            # was configured, it means we have not received anything.
+            print(f"    {cur_event.node} executing lost input callback")
+            if watchdog.sub.nominal_callback:
+                self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
 
     def _schedule_next_periodic_work(
         self, loop: LoopConfig, node: Node, next_time: int
@@ -213,9 +293,10 @@ class Executor:
         cur_event.timestamp = next_time
         heapq.heappush(self.event_queue, cur_event)
 
-    def _execute_callback(self, callback: CallbackConfig):
+    def _execute_callback(self, node: Node, callback: CallbackConfig):
         if callback.publish:
             for pub in callback.publish:
+                node.update_publish_feature()
                 # publish message to all subscribers of this topic
                 for sub_node in self.graph.topic_subscribers(pub.topic):
                     print(f"        publish to {sub_node.config.name}")
@@ -239,6 +320,18 @@ class Executor:
     def _get_all_node_features(self) -> List:
         "get flattened feature list for the entire graph"
         return [item for node in self.graph.nodes.values() for item in node.feature]
+
+    def _maybe_enqueue_watchdog_work(self, node: Node, sub: SubscriptionConfig):
+        if sub.watchdog is None:
+            return
+        # wake up and check for lost input
+        new_event = Event(
+            timestamp=self.current_time + sub.watchdog,
+            node=node,
+            work=Event.WatchDogConfig(sub=sub),
+            subscription_data=self.current_time,
+        )
+        heapq.heappush(self.event_queue, new_event)
 
     def _process_fault_injection_config(self, config: FaultInjectionConfig) -> None:
         self._validate_fault_injection_config(config)
@@ -280,3 +373,4 @@ class Executor:
             "\n\033[92m======== Executing graph with "
             f"{len(self.graph.nodes)} nodes =========\033[0m"
         )
+        print("Time: 0")
