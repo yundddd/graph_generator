@@ -1,0 +1,82 @@
+# This subsystem contains nodes with very high in degree and also forms a cycle with the perception subsystem.
+nodes:
+  - name: planner
+    subscribe:
+      - topic: lane_data
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: trajectory
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+
+      - topic: traffic_light
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          # do nothing
+        lost_input_callback:
+          # do nothing
+
+      - topic: imu_data1
+        valid_range: [0, 10]
+        watchdog: 8
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+
+      - topic: imu_data2
+        valid_range: [0, 10]
+        watchdog: 8
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: trajectory
+              value_range: [20, 30]
+              delay_range: [1, 2]
+
+      - topic: tracks
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          # do nothing
+        lost_input_callback:
+          # do nothing
+
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: capability
+            value_range: [10, 20]
+            delay_range: [1, 2]

@@ -71,6 +71,9 @@ class SubscriptionConfig(BaseModel):
     invalid_input_callback: InvalidInputCallbackConfig | None = None
     lost_input_callback: LostInputCallbackConfig | None = None
 
+    def __lt__(self, other: SubscriptionConfig) -> bool:
+        return self.topic < other.topic
+
 
 class LoopConfig(BaseModel):
     period: int

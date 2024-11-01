@@ -1,0 +1,176 @@
+# This subsystem has nodes that consume the most data from another subsystem (sensor), which allows us to model nodes with high in degree.
+#
+nodes:
+  - name: lane_boundary
+    subscribe:
+      - topic: road_data
+        valid_range: [20, 30]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: lane_data
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: lane_data
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          # do nothing and fail silent
+      - topic: processed_lidar_data1
+        valid_range: [100, 200]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: lane_data
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          # do nothing and fail silent
+
+  - name: traffic_light
+    # This node fails silently
+    subscribe:
+      - topic: lane_data
+        valid_range: [20, 30]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: traffic_light
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+
+  - name: tracker
+    # This nodes detects cars, pedestrians, and track them across time.
+    # It is highly connected to sensor data.
+    subscribe:
+      - topic: processed_lidar_data1
+        valid_range: [100, 200]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+      - topic: processed_lidar_data2
+        valid_range: [200, 300]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: processed_lidar_data3
+        valid_range: [300, 400]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: processed_lidar_data4
+        valid_range: [400, 500]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: processed_camera_data1
+        valid_range: [100, 200]
+        watchdog: 7
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: processed_camera_data2
+        valid_range: [200, 300]
+        watchdog: 7
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: processed_camera_data3
+        valid_range: [300, 400]
+        watchdog: 7
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: traffic_light
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+        lost_input_callback:
+          publish:
+            - topic: tracks
+              value_range: [20, 30]
+              delay_range: [5, 8]
+
+      - topic: capability
+        valid_range: [10, 20]
+        watchdog: 15
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          # do nothing
+        lost_input_callback:
+          # do nothing
+
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: tracks
+            value_range: [10, 20]
+            delay_range: [5, 8]

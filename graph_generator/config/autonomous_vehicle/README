@@ -1,0 +1,5 @@
+This folder contains an example graph approximating modern autonomous vehicle software architecture. It contains roughly 30 nodes from 4 different subsystems, each with unique properties allowing us to model various design choices. The run the executor with this graph, use this command:
+
+```bash
+bazel run //graph_generator:main -- --graph graph_generator/config/autonomous_vehicle/graph.yaml --node_feature_output ~/out --viz
+```

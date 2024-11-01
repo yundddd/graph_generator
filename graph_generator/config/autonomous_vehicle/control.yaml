@@ -1,0 +1,22 @@
+# This subsystem is meant to be the terminal nodes in the graph.
+nodes:
+  - name: control
+    subscribe:
+      - topic: trajectory
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: control_output
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: control_output
+              value_range: [20, 30]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: control_output
+              value_range: [20, 30]
+              delay_range: [1, 2]
