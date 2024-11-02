@@ -1,5 +1,7 @@
-# This subsystem has nodes that consume the most data from another subsystem (sensor), which allows us to model nodes with high in degree.
-#
+# This subsystem has nodes that consume the most data from another subsystem (sensor), 
+# which allows us to model nodes with high in degree.
+# The tracker node will also get stuck when some input is lost, to model user code that
+# requires non-deterministic processing time to reconcile missing input data.
 nodes:
   - name: lane_boundary
     subscribe:
@@ -17,7 +19,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
       - topic: processed_lidar_data1
         valid_range: [100, 200]
         watchdog: 15
@@ -45,7 +48,8 @@ nodes:
         invalid_input_callback:
           # do nothing and fail silent
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
   - name: tracker
     # This nodes detects cars, pedestrians, and track them across time.
@@ -62,7 +66,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
       - topic: processed_lidar_data2
         valid_range: [200, 300]
         watchdog: 15
@@ -74,7 +79,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: processed_lidar_data3
         valid_range: [300, 400]
@@ -87,7 +93,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: processed_lidar_data4
         valid_range: [400, 500]
@@ -100,7 +107,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: processed_camera_data1
         valid_range: [100, 200]
@@ -113,7 +121,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: processed_camera_data2
         valid_range: [200, 300]
@@ -126,7 +135,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: processed_camera_data3
         valid_range: [300, 400]
@@ -139,7 +149,8 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          # do nothing and fail silent
+          action:
+            drop_event_for: 50
 
       - topic: traffic_light
         valid_range: [10, 20]
@@ -165,7 +176,8 @@ nodes:
         invalid_input_callback:
           # do nothing
         lost_input_callback:
-          # do nothing
+          action:
+            drop_event_for: 50
 
     loop:
       period: 10

@@ -7,11 +7,11 @@ package(default_visibility = ["//visibility:public"])
 merge_yaml(
     name = "graph",
     srcs = [
-        "mapping.yaml",
-        "sensor.yaml",
-        "perception.yaml",
-        "motion_planning.yaml",
         "control.yaml",
+        "mapping.yaml",
+        "motion_planning.yaml",
+        "perception.yaml",
+        "sensor.yaml",
     ],
     out = "graph.yaml",
 )

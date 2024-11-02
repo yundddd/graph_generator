@@ -1,4 +1,6 @@
 # This subsystem contains nodes with very high in degree and also forms a cycle with the perception subsystem.
+# This subsystem has nodes that would crash due to invalid input data, to model user code that contains
+# bugs and is not performing input sanitization.
 nodes:
   - name: planner
     subscribe:
@@ -29,7 +31,8 @@ nodes:
         invalid_input_callback:
           # do nothing
         lost_input_callback:
-          # do nothing
+          action:
+            drop_event_for: 50
 
       - topic: imu_data1
         valid_range: [0, 10]
@@ -69,9 +72,23 @@ nodes:
         nominal_callback:
           # do nothing
         invalid_input_callback:
-          # do nothing
+          action:
+            crash: true
         lost_input_callback:
+          action:
+            drop_event_for: 50
+
+      - topic: control_output
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
           # do nothing
+        invalid_input_callback:
+          action:
+            drop_event_for: 20
+        lost_input_callback:
+          action:
+            drop_event_for: 20
 
     loop:
       period: 10
