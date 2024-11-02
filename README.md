@@ -89,6 +89,10 @@ affect_receive:
 
 This config injects a fault to node B at time 20 to delay its receipt of messages on `topic1`. Please see this [fault_injection.py](graph_generator/fault_injection.py) for a full list of faults supported.
 
+## Example Configs And Dataset
+
+In the [config](graph_generator/config/autonomous_vehicle/) folder, we have created an example graph as well as the dataset.
+
 ## Limitation
 
 This graph executor is designed to be able to model any kind of graph with pub-sub relationships. But there are some limitations in implementation that users should be aware of.

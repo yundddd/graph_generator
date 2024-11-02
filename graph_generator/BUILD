@@ -55,8 +55,7 @@ graph_generator_py_binary(
         "main.py",
     ],
     data = [
-        "//graph_generator/config:example_fault_injection",
-        "//graph_generator/config:graph",
+        "//graph_generator/config",  # all configs including merged ones
     ],
     main = "main.py",
     visibility = ["//visibility:public"],

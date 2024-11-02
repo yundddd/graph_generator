@@ -1,18 +1,20 @@
-filegroup(
-    name = "graph",
-    srcs = [
-        "graph.yaml",
-    ],
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "merge_yaml",
+    srcs = ["merge_yaml.py"],
     visibility = ["//visibility:public"],
+    deps = [
+        requirement("click"),
+        requirement("PyYAML"),
+    ],
 )
 
 filegroup(
-    name = "example_fault_injection",
-    srcs = [
-        "delay_loop.yaml",
-        "delay_receive.yaml",
-        "drop_loop.yaml",
-        "drop_receive.yaml",
+    name = "config",
+    srcs = glob(["**/*"]) + [
+        "//graph_generator/config/autonomous_vehicle:config",
     ],
     visibility = ["//visibility:public"],
 )

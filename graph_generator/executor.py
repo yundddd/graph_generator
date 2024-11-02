@@ -38,6 +38,9 @@ class Event:
     class WatchDogConfig:
         sub: SubscriptionConfig
 
+        def __lt__(self, other: "Event.WatchDogConfig"):
+            return self.sub < other.sub
+
     # The timestamp of this event
     timestamp: int
     # The associated Node for this event, which will perform some work
@@ -127,27 +130,41 @@ class Executor:
                 for dest in dests:
                     G.add_edge(src.config.name, dest.config.name)
             # Define the layout for the graph
-            pos = nx.spectral_layout(G)
+            pos = nx.spring_layout(G, k=5)
 
             # Initialize the figure and axis
             fig, ax = plt.subplots()
             self.viz_nodes = nx.draw_networkx_nodes(G, pos, node_color="#1f78b4", ax=ax)
             nx.draw_networkx_edges(G, pos, ax=ax)
-            nx.draw_networkx_labels(G, pos, ax=ax)
+            label_pos = {
+                node: (coord[0], coord[1] + 0.08) for node, coord in pos.items()
+            }
+            nx.draw_networkx_labels(G, label_pos, ax=ax)
 
             # returned value should be assigned to keep the animation running
-            anim = FuncAnimation(fig, self._simulate_one_step, interval=100, blit=False)
+            anim = FuncAnimation(
+                fig,
+                self._simulate_one_step,
+                interval=100,
+                blit=False,
+                cache_frame_data=False,
+            )
 
             plt.show()
         else:
             if self.output:
                 with open(self.output, mode="a", newline="") as file:
                     writer = csv.writer(file)
+                    last_row_feature = None
                     while len(self.event_queue):
                         if self._simulate_one_step():
                             flattened_features = self._get_all_node_features()
-                            # Each row corresponds to each graph feature snapshots
-                            writer.writerow(flattened_features)
+                            # deduplicate features. Sometimes a step could only involve
+                            # watchdog checks which could lead to no feature update.
+                            if flattened_features != last_row_feature:
+                                # Each row corresponds to each graph feature snapshots
+                                writer.writerow(flattened_features)
+                                last_row_feature = flattened_features
             else:
                 # just run the simulation without writing to a file
                 while len(self.event_queue):
@@ -253,11 +270,14 @@ class Executor:
             )
             return False
 
-        print(f"    {cur_event.node} executing subscription callback")
         cur_event.node.receive_message(self.current_time, sub.topic)
         cur_event.node.update_event_feature(event=sub, timestamp=cur_event.timestamp)
         if sub.valid_range[0] <= data <= sub.valid_range[1]:
             if sub.nominal_callback:
+                print(
+                    f"    {cur_event.node} executing nominal input callback on "
+                    f"topic {sub.topic}"
+                )
                 cur_event.node.update_callback_feature(callback=sub.nominal_callback)
                 self._execute_callback(cur_event.node, sub.nominal_callback)
         else:
@@ -265,6 +285,11 @@ class Executor:
                 cur_event.node.update_callback_feature(
                     callback=sub.invalid_input_callback
                 )
+                print(
+                    f"    {cur_event.node} executing \033[91minvalid input callback\033[0m "
+                    f"on topic {sub.topic}"
+                )
+
                 self._execute_callback(cur_event.node, sub.invalid_input_callback)
 
         # Enqueue the next watchdog work, if it has one.
@@ -276,11 +301,15 @@ class Executor:
         assert isinstance(watchdog, Event.WatchDogConfig)
         data = cur_event.subscription_data
         assert data is not None
+        print(
+            f"    {cur_event.node} executing watchdog callback on topic "
+            f"{watchdog.sub.topic}"
+        )
         if cur_event.node.message_received[watchdog.sub.topic] == data:
             # If last message receipt time is still the same when the watchdog
             # was configured, it means we have not received anything.
-            print(f"    {cur_event.node} executing lost input callback")
-            if watchdog.sub.nominal_callback:
+            print(f"    {cur_event.node} executing \033[91mlost input callback\033[0m")
+            if watchdog.sub.lost_input_callback:
                 self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
 
     def _schedule_next_periodic_work(
@@ -299,10 +328,13 @@ class Executor:
                 node.update_publish_feature()
                 # publish message to all subscribers of this topic
                 for sub_node in self.graph.topic_subscribers(pub.topic):
-                    print(f"        publish to {sub_node.config.name}")
-
+                    recv_time_delta = random.randint(*pub.delay_range)
+                    print(
+                        f"        publish to {sub_node.config.name}"
+                        f" +{recv_time_delta}"
+                    )
                     new_event = Event(
-                        timestamp=self.current_time + random.randint(*pub.delay_range),
+                        timestamp=self.current_time + recv_time_delta,
                         node=sub_node,
                         work=self._find_sub_config(sub_node.config, pub.topic),
                         subscription_data=random.randint(*pub.value_range),

@@ -1,0 +1,76 @@
+# This subsystem employs fail silent approach. If the upstream GPS location is invalid or lost,
+# it will not publish any data.
+
+nodes:
+  # This node is responsible for loading the map from the onboard storage system.
+  - name: map_loader
+    subscribe:
+      - topic: gps1
+        valid_range: [0, 10]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: map_data
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+      - topic: gps2
+        valid_range: [0, 10]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: map_data
+              value_range: [10, 20]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: imu_data1
+        valid_range: [0, 10]
+        watchdog: 8
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+
+      - topic: imu_data2
+        valid_range: [0, 10]
+        watchdog: 8
+        nominal_callback:
+          # do nothing
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+
+  - name: road
+    subscribe:
+      - topic: map_data
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: road_data
+              value_range: [20, 30]
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent
+      - topic: lane_data
+        valid_range: [10, 20]
+        watchdog: 25
+        nominal_callback:
+          publish:
+            - topic: road_data
+              value_range: [20, 30]
+        invalid_input_callback:
+          # do nothing and fail silent
+        lost_input_callback:
+          # do nothing and fail silent

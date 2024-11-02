@@ -1,0 +1,422 @@
+# This file describes a typical sensor subsystem involving various sensors for autonomous vehicles.
+# This subsystem has the following patterns:
+#   - Some sensors have redundancy or similar functionality but generate different data (covering different quadrants)
+#     this models nodes that share the same code but can fail independently.
+#   - Each sensor pairs with a hardware monitor node so they work together. This models nodes that work in pairs.
+#   - There is no cycles in this subsystem.
+
+# lidar drivers that directly interface with hardware devices
+nodes:
+  - name: lidar_driver1
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: raw_lidar_data1
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  - name: lidar_driver2
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: raw_lidar_data2
+            value_range: [10, 20]
+            delay_range: [1, 2]
+
+  - name: lidar_driver3
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: raw_lidar_data3
+            value_range: [20, 30]
+            delay_range: [1, 2]
+
+  - name: lidar_driver4
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: raw_lidar_data4
+            value_range: [30, 40]
+            delay_range: [1, 2]
+
+  # a monitor for all lidars hardware. If the hardware is not healthy, it can communicate to downstream.
+  - name: lidar_monitor
+    loop:
+      period: 50
+      callback:
+        publish:
+          - topic: lidar_state
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  # lidar extractors transforms raw lidar data to something more downstream friendly.
+  # This node however depends on healthy lidar hardware and the correct function of the driver node.
+  - name: lidar_extractor1
+    subscribe:
+      - topic: raw_lidar_data1
+        valid_range: [0, 10]
+        watchdog: 15
+        nominal_callback:
+          publish:
+            - topic: processed_lidar_data1
+              value_range: [100, 200]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_lidar_data1
+              value_range: [200, 300]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: lidar_state
+        valid_range: [0, 10]
+        watchdog: 250
+        invalid_input_callback:
+          publish:
+            - topic: lidar_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+
+  - name: lidar_extractor2
+    subscribe:
+      - topic: raw_lidar_data2
+        valid_range: [10, 20]
+        watchdog: 15
+        nominal_callback:
+          publish:
+            - topic: processed_lidar_data2
+              value_range: [200, 300]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_lidar_data2
+              value_range: [300, 400]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: lidar_state
+        valid_range: [0, 10]
+        watchdog: 250
+        invalid_input_callback:
+          publish:
+            - topic: lidar_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+
+  - name: lidar_extractor3
+    subscribe:
+      - topic: raw_lidar_data3
+        valid_range: [20, 30]
+        watchdog: 15
+        nominal_callback:
+          publish:
+            - topic: processed_lidar_data3
+              value_range: [300, 400]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_lidar_data3
+              value_range: [400, 500]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: lidar_state
+        valid_range: [0, 10]
+        watchdog: 250
+        invalid_input_callback:
+          publish:
+            - topic: lidar_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+
+  - name: lidar_extractor4
+    subscribe:
+      - topic: raw_lidar_data4
+        valid_range: [30, 40]
+        watchdog: 15
+        nominal_callback:
+          publish:
+            - topic: processed_lidar_data4
+              value_range: [400, 500]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_lidar_data4
+              value_range: [500, 600]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error4
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: lidar_state
+        valid_range: [0, 10]
+        watchdog: 250
+        invalid_input_callback:
+          publish:
+            - topic: lidar_error4
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: lidar_error4
+              value_range: [0, 10]
+              delay_range: [1, 2]
+
+  # camera drivers
+  - name: camera_driver1
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: raw_camera_data1
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  - name: camera_driver2
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: raw_camera_data2
+            value_range: [10, 20]
+            delay_range: [1, 2]
+
+  - name: camera_driver3
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: raw_camera_data3
+            value_range: [20, 30]
+            delay_range: [1, 2]
+
+  - name: camera_driver4
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: raw_camera_data4
+            value_range: [30, 40]
+            delay_range: [1, 2]
+
+  - name: camera_monitor
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: camera_state
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  - name: camera_extractor1
+    subscribe:
+      - topic: raw_camera_data1
+        valid_range: [0, 10]
+        watchdog: 7
+        nominal_callback:
+          publish:
+            - topic: processed_camera_data1
+              value_range: [100, 200]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_camera_data1
+              value_range: [200, 300]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: camera_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: camera_state
+        valid_range: [0, 10]
+        watchdog: 15
+        invalid_input_callback:
+          publish:
+            - topic: camera_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: camera_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        valid_input_callback:
+          # do nothing
+
+  - name: camera_extractor2
+    subscribe:
+      - topic: raw_camera_data2
+        valid_range: [10, 20]
+        watchdog: 7
+        nominal_callback:
+          publish:
+            - topic: processed_camera_data2
+              value_range: [200, 300]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_camera_data2
+              value_range: [300, 400]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: camera_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: camera_state
+        valid_range: [0, 10]
+        watchdog: 15
+        invalid_input_callback:
+          publish:
+            - topic: camera_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: camera_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        valid_input_callback:
+          # do nothing
+
+  - name: camera_extractor3
+    subscribe:
+      - topic: raw_camera_data3
+        valid_range: [20, 30]
+        watchdog: 7
+        nominal_callback:
+          publish:
+            - topic: processed_camera_data3
+              value_range: [300, 400]
+              delay_range: [1, 2]
+        invalid_input_callback:
+          publish:
+            - topic: processed_camera_data3
+              value_range: [400, 500]
+              delay_range: [1, 5]
+        lost_input_callback:
+          publish:
+            - topic: camera_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+      - topic: camera_state
+        valid_range: [0, 10]
+        watchdog: 15
+        invalid_input_callback:
+          publish:
+            - topic: camera_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: camera_error3
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        valid_input_callback:
+          # do nothing
+
+  - name: imu_driver1
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: imu_data1
+            value_range: [0, 10]
+            delay_range: [1, 2]
+    subscribe:
+      - topic: imu_state
+        valid_range: [0, 10]
+        watchdog: 30
+        invalid_input_callback:
+          publish:
+            - topic: imu_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: imu_error1
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        valid_input_callback:
+          # do nothing
+
+  - name: imu_driver2
+    loop:
+      period: 5
+      callback:
+        publish:
+          - topic: imu_data2
+            value_range: [0, 10]
+            delay_range: [1, 2]
+    subscribe:
+      - topic: imu_state
+        valid_range: [0, 10]
+        watchdog: 30
+        invalid_input_callback:
+          publish:
+            - topic: imu_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        lost_input_callback:
+          publish:
+            - topic: imu_error2
+              value_range: [0, 10]
+              delay_range: [1, 2]
+        valid_input_callback:
+          # do nothing
+  - name: imu_monitor
+    loop:
+      period: 25
+      callback:
+        publish:
+          - topic: imu_state
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  - name: gps_driver1
+    loop:
+      period: 20
+      callback:
+        publish:
+          - topic: gps1
+            value_range: [0, 10]
+            delay_range: [1, 2]
+
+  - name: gps_driver2
+    loop:
+      period: 20
+      callback:
+        publish:
+          - topic: gps2
+            value_range: [0, 10]
+            delay_range: [1, 2]
