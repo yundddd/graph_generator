@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -11,8 +12,10 @@ from graph_generator.fault_injection import (
     DelayLoopConfig,
     DelayReceiveConfig,
     DropLoopConfig,
+    DropPublishConfig,
     DropReceiveConfig,
     FaultInjectionConfig,
+    MutatePublishConfig,
 )
 
 
@@ -27,12 +30,20 @@ class PublishConfig(BaseModel):
     delay_range: Tuple[int, int] = (0, 0)
 
 
+class ActionConfig(BaseModel):
+    # Drop x events in the future to simulate a node getting stuck.
+    drop_event_for: int | None = None
+    # Kill this node for good. No more events will be handled by this node.
+    crash: bool | None = None
+
+
 class CallbackConfig(BaseModel):
     """
     A CallbackConfig defines what to do when a node performs a work.
     """
 
     publish: List[PublishConfig] | None = None
+    action: ActionConfig | None = None
 
 
 class NominalCallbackConfig(CallbackConfig):
@@ -106,11 +117,11 @@ class NodeConfig(BaseModel):
             ret = len(config.loop.callback.publish)
         if config.subscribe:
             for sub in config.subscribe:
-                if sub.nominal_callback:
+                if sub.nominal_callback and sub.nominal_callback.publish:
                     ret += len(sub.nominal_callback.publish)
-                if sub.invalid_input_callback:
+                if sub.invalid_input_callback and sub.invalid_input_callback.publish:
                     ret += len(sub.invalid_input_callback.publish)
-                if sub.lost_input_callback:
+                if sub.lost_input_callback and sub.lost_input_callback.publish:
                     ret += len(sub.lost_input_callback.publish)
         return ret
 
@@ -213,6 +224,23 @@ class Node:
         self.delayed_loop_count = 0
         self.dropped_receive_count = defaultdict(int)
 
+        self.should_drop_event_count = 0
+        self.should_crash_at: Optional[int] = None
+        # record when and how we should mutate publish
+        self.should_mutate_publish_at: Optional[
+            Tuple[int, MutatePublishConfig | DropPublishConfig]
+        ] = None
+
+    def process_fault_injection_config(self, config: FaultInjectionConfig):
+        self.fault_injection_config = deepcopy(config)
+        if config.affect_publish:
+            self.should_mutate_publish_at = (
+                config.inject_at,
+                config.affect_publish,
+            )
+        if config.crash is not None and config.crash:
+            self.should_crash_at = config.inject_at
+
     def drop_loop(self, cur_time: int):
         print(f"    \033[91mNode: {self.config.name} dropped loop at {cur_time}\033[0m")
         self.dropped_loop_count += 1
@@ -243,6 +271,65 @@ class Node:
         # Since we can only delay once, erase the config to avoid accounting.
         self.fault_injection_config = None
         pass
+
+    def maybe_drop_event(self, cur_time: int, event: Any):
+        if isinstance(event, LoopConfig):
+            e = "loop"
+        elif isinstance(event, SubscriptionConfig):
+            e = f"message from {event.topic}"
+        else:
+            e = f"watchdog on {event.sub.topic}"
+        if self.should_crash_at is not None and cur_time >= self.should_crash_at:
+            print(
+                f"    \033[91mNode: {self.config.name} crashed and dropped "
+                f"{e}\033[0m"
+            )
+            return True
+        if self.should_drop_event_count > 0:
+            print(
+                f"    \033[91mNode: {self.config.name} is stuck and dropped "
+                f"{e}\033[0m"
+            )
+            self.should_drop_event_count -= 1
+            return True
+        return False
+
+    def should_mutate_publish(
+        self, cur_time: int, topic: str
+    ) -> Tuple[bool, MutatePublishConfig | DropPublishConfig | None]:
+        """
+        Determines if a publish operation should be mutated based on the current time and topic.
+
+        Args:
+            cur_time (int): The current time unit.
+            topic (str): The topic for which the mutation is being checked.
+
+        Returns:
+            Tuple[bool, MutatePublishConfig | DropPublishConfig | None]: A tuple where the first element indicates
+            if a mutation should occur, and the second element is the configuration for the mutation or drop,
+            or None if no mutation should occur.
+        """
+        if (
+            self.should_mutate_publish_at is not None
+            and cur_time >= self.should_mutate_publish_at[0]
+            and topic == self.should_mutate_publish_at[1].topic
+        ):
+            if (
+                isinstance(self.should_mutate_publish_at[1], DropPublishConfig)
+                and self.should_mutate_publish_at[1].drop > 0
+            ):
+                print(
+                    f"    \033[91mNode: {self.config.name} dropped publish to topic "
+                    f"{topic}\033[0m"
+                )
+                self.should_mutate_publish_at[1].drop -= 1
+                return True, self.should_mutate_publish_at[1]
+            print(
+                f"    \033[91mNode: {self.config.name} mutated publish to topic "
+                f"{topic}\033[0m"
+            )
+            return True, self.should_mutate_publish_at[1]
+        return False, None
 
     def should_drop_loop(self, cur_time: int):
         return (

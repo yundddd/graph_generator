@@ -2,6 +2,7 @@ import csv
 import heapq
 import os
 import random
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import List
 
@@ -13,8 +14,10 @@ from graph_generator.fault_injection import (
     DelayLoopConfig,
     DelayReceiveConfig,
     DropLoopConfig,
+    DropPublishConfig,
     DropReceiveConfig,
     FaultInjectionConfig,
+    MutatePublishConfig,
 )
 from graph_generator.graph import Graph
 from graph_generator.node import (
@@ -192,6 +195,9 @@ class Executor:
                 return False
             print(f"Time: {self.current_time}")
 
+        # If a node has crashed or is stuck, drop event early.
+        if cur_event.node.maybe_drop_event(self.current_time, cur_event.work):
+            return False
         if isinstance(cur_event.work, LoopConfig):
             return self._handle_loop_work(cur_event)
 
@@ -286,7 +292,7 @@ class Executor:
                     callback=sub.invalid_input_callback
                 )
                 print(
-                    f"    {cur_event.node} executing \033[91minvalid input callback\033[0m "
+                    f"    \033[91m{cur_event.node} executing invalid input callback\033[0m "
                     f"on topic {sub.topic}"
                 )
 
@@ -308,7 +314,7 @@ class Executor:
         if cur_event.node.message_received[watchdog.sub.topic] == data:
             # If last message receipt time is still the same when the watchdog
             # was configured, it means we have not received anything.
-            print(f"    {cur_event.node} executing \033[91mlost input callback\033[0m")
+            print(f"    \033[91m{cur_event.node} executing lost input callback\033[0m")
             if watchdog.sub.lost_input_callback:
                 self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
 
@@ -325,6 +331,21 @@ class Executor:
     def _execute_callback(self, node: Node, callback: CallbackConfig):
         if callback.publish:
             for pub in callback.publish:
+                mutate_publish = node.should_mutate_publish(
+                    cur_time=self.current_time, topic=pub.topic
+                )
+                if mutate_publish[0] and isinstance(
+                    mutate_publish[1], DropPublishConfig
+                ):
+                    # dropped a publish
+                    continue
+                publish_value = random.randint(*pub.value_range)
+                if mutate_publish[0] and isinstance(
+                    mutate_publish[1], MutatePublishConfig
+                ):
+                    # mutate a publish value
+                    publish_value = mutate_publish[1].value
+
                 node.update_publish_feature()
                 # publish message to all subscribers of this topic
                 for sub_node in self.graph.topic_subscribers(pub.topic):
@@ -337,9 +358,14 @@ class Executor:
                         timestamp=self.current_time + recv_time_delta,
                         node=sub_node,
                         work=self._find_sub_config(sub_node.config, pub.topic),
-                        subscription_data=random.randint(*pub.value_range),
+                        subscription_data=publish_value,
                     )
                     heapq.heappush(self.event_queue, new_event)
+        if callback.action:
+            if callback.action.drop_event_for is not None:
+                node.should_drop_event_count += callback.action.drop_event_for
+            if callback.action.crash is not None and callback.action.crash:
+                node.should_crash_at = self.current_time
 
     def _find_sub_config(self, node: NodeConfig, topic: str) -> SubscriptionConfig:
         if not node.subscribe:
@@ -367,7 +393,7 @@ class Executor:
 
     def _process_fault_injection_config(self, config: FaultInjectionConfig) -> None:
         self._validate_fault_injection_config(config)
-        self.graph.nodes[config.inject_to].fault_injection_config = config
+        self.graph.nodes[config.inject_to].process_fault_injection_config(config)
 
     def _validate_fault_injection_config(self, config: FaultInjectionConfig) -> None:
         self.loop_mutation = []
@@ -379,7 +405,7 @@ class Executor:
         if config.affect_loop:
             if node not in [n.config.name for n in self.graph.nodes_with_loops()]:
                 raise ValueError(
-                    f"Cannot inject loop fault to a node without loop: " "{node}"
+                    f"Cannot inject loop fault to a node without loop: {node}"
                 )
 
         if (
@@ -388,16 +414,16 @@ class Executor:
             != self.graph.topic_publisher_map[config.affect_publish.topic].config.name
         ):
             raise ValueError(
-                f"Cannot inject publish fault to "
-                "{node} since it doesn't publish to {config.affect_publish.topic}"
+                "Cannot inject publish fault to "
+                f"{node} since it doesn't publish to {config.affect_publish.topic}"
             )
         if config.affect_receive and node not in [
             n.config.name
             for n in self.graph.topic_subscriber_map[config.affect_receive.topic]
         ]:
             raise ValueError(
-                f"Cannot inject subscribe fault to "
-                "{node} since it doesn't subscribe to {config.affect_receive.topic}"
+                "Cannot inject subscribe fault to "
+                f"{node} since it doesn't subscribe to {config.affect_receive.topic}"
             )
 
     def _print_sim_summary(self):

@@ -15,7 +15,7 @@ class DropPublishConfig(BaseModel):
 
 class MutatePublishConfig(BaseModel):
     """
-    This config describes which topic to mutate and how many times.
+    This config describes which topic to mutate and use what value.
     """
 
     topic: str
@@ -80,6 +80,8 @@ class FaultInjectionConfig(BaseModel):
     affect_publish: DropPublishConfig | MutatePublishConfig | None = None
     affect_receive: DropReceiveConfig | DelayReceiveConfig | None = None
     affect_loop: DelayLoopConfig | DropLoopConfig | None = None
+    # crash a node
+    crash: bool | None = None
 
     def dump(self, index: int, output: str):
         """

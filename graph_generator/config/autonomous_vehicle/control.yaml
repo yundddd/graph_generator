@@ -16,7 +16,13 @@ nodes:
               value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          publish:
-            - topic: control_output
-              value_range: [20, 30]
-              delay_range: [1, 2]
+          action:
+            drop_event_for: 50
+
+    loop:
+      period: 10
+      callback:
+        publish:
+          - topic: control_output
+            value_range: [10, 20]
+            delay_range: [1, 2]
