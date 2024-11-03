@@ -6,10 +6,7 @@ nodes:
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          publish:
-            - topic: control_output
-              value_range: [10, 20]
-              delay_range: [1, 2]
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: control_output
@@ -17,7 +14,7 @@ nodes:
               delay_range: [1, 2]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
     loop:
       period: 10

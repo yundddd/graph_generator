@@ -1,4 +1,4 @@
-# This subsystem has nodes that consume the most data from another subsystem (sensor), 
+# This subsystem has nodes that consume the most data from another subsystem (sensor),
 # which allows us to model nodes with high in degree.
 # The tracker node will also get stuck when some input is lost, to model user code that
 # requires non-deterministic processing time to reconcile missing input data.
@@ -20,19 +20,19 @@ nodes:
               delay_range: [1, 2]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
       - topic: processed_lidar_data1
         valid_range: [100, 200]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: lane_data
               value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
 
   - name: traffic_light
     # This node fails silently
@@ -46,10 +46,10 @@ nodes:
               value_range: [10, 20]
               delay_range: [1, 2]
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
   - name: tracker
     # This nodes detects cars, pedestrians, and track them across time.
@@ -59,7 +59,7 @@ nodes:
         valid_range: [100, 200]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -67,12 +67,12 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
       - topic: processed_lidar_data2
         valid_range: [200, 300]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -80,13 +80,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: processed_lidar_data3
         valid_range: [300, 400]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -94,13 +94,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: processed_lidar_data4
         valid_range: [400, 500]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -108,13 +108,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: processed_camera_data1
         valid_range: [100, 200]
         watchdog: 7
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -122,13 +122,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: processed_camera_data2
         valid_range: [200, 300]
         watchdog: 7
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -136,13 +136,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: processed_camera_data3
         valid_range: [300, 400]
         watchdog: 7
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -150,13 +150,13 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
       - topic: traffic_light
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: tracks
@@ -172,15 +172,15 @@ nodes:
         valid_range: [10, 20]
         watchdog: 15
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
-          # do nothing
+          no_op: true
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 10
 
     loop:
-      period: 10
+      period: 20
       callback:
         publish:
           - topic: tracks

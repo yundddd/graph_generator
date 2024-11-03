@@ -14,9 +14,9 @@ nodes:
               value_range: [10, 20]
               delay_range: [1, 2]
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
       - topic: gps2
         valid_range: [0, 10]
         watchdog: 25
@@ -26,29 +26,29 @@ nodes:
               value_range: [10, 20]
               delay_range: [1, 2]
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
 
       - topic: imu_data1
         valid_range: [0, 10]
         watchdog: 8
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
 
       - topic: imu_data2
         valid_range: [0, 10]
         watchdog: 8
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
 
   - name: road
     subscribe:
@@ -56,13 +56,11 @@ nodes:
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          publish:
-            - topic: road_data
-              value_range: [20, 30]
+          no_op: true
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true
       - topic: lane_data
         valid_range: [10, 20]
         watchdog: 25
@@ -71,6 +69,6 @@ nodes:
             - topic: road_data
               value_range: [20, 30]
         invalid_input_callback:
-          # do nothing and fail silent
+          no_op: true
         lost_input_callback:
-          # do nothing and fail silent
+          no_op: true

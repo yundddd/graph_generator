@@ -32,6 +32,7 @@ class PublishConfig(BaseModel):
 
 class ActionConfig(BaseModel):
     # Drop x events in the future to simulate a node getting stuck.
+    # It will drop loop and subscription events only.
     drop_event_for: int | None = None
     # Kill this node for good. No more events will be handled by this node.
     crash: bool | None = None
@@ -44,6 +45,7 @@ class CallbackConfig(BaseModel):
 
     publish: List[PublishConfig] | None = None
     action: ActionConfig | None = None
+    no_op: bool | None = None
 
 
 class NominalCallbackConfig(CallbackConfig):
@@ -272,27 +274,33 @@ class Node:
         self.fault_injection_config = None
         pass
 
-    def maybe_drop_event(self, cur_time: int, event: Any):
-        if isinstance(event, LoopConfig):
-            e = "loop"
-        elif isinstance(event, SubscriptionConfig):
-            e = f"message from {event.topic}"
-        else:
-            e = f"watchdog on {event.sub.topic}"
+    def is_crashed(self, cur_time: int, event: Any) -> bool:
         if self.should_crash_at is not None and cur_time >= self.should_crash_at:
             print(
-                f"    \033[91mNode: {self.config.name} crashed and dropped "
-                f"{e}\033[0m"
+                f"    \033[91mNode: {self.config.name} crashed and "
+                f"dropped {self._event_to_str(event)}\033[0m"
             )
             return True
+        return False
+
+    def is_stuck(self, event: Any) -> bool:
         if self.should_drop_event_count > 0:
             print(
-                f"    \033[91mNode: {self.config.name} is stuck and dropped "
-                f"{e}\033[0m"
+                f"    \033[91mNode: {self.config.name} is stuck and "
+                f"dropped {self._event_to_str(event)} "
+                f"{self.should_drop_event_count}\033[0m"
             )
             self.should_drop_event_count -= 1
             return True
         return False
+
+    def _event_to_str(self, event: Any) -> str:
+        if isinstance(event, LoopConfig):
+            return "loop"
+        elif isinstance(event, SubscriptionConfig):
+            return f"message from {event.topic}"
+        else:
+            return f"watchdog on {event.sub.topic}"
 
     def should_mutate_publish(
         self, cur_time: int, topic: str

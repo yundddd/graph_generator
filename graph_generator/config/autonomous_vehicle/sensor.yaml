@@ -271,7 +271,7 @@ nodes:
               value_range: [0, 10]
               delay_range: [1, 2]
         valid_input_callback:
-          # do nothing
+          no_op: true
 
   - name: camera_extractor2
     subscribe:
@@ -307,7 +307,7 @@ nodes:
               value_range: [0, 10]
               delay_range: [1, 2]
         valid_input_callback:
-          # do nothing
+          no_op: true
 
   - name: camera_extractor3
     subscribe:
@@ -343,7 +343,7 @@ nodes:
               value_range: [0, 10]
               delay_range: [1, 2]
         valid_input_callback:
-          # do nothing
+          no_op: true
 
   - name: imu_driver1
     loop:
@@ -368,7 +368,7 @@ nodes:
               value_range: [0, 10]
               delay_range: [1, 2]
         valid_input_callback:
-          # do nothing
+          no_op: true
 
   - name: imu_driver2
     loop:
@@ -393,7 +393,7 @@ nodes:
               value_range: [0, 10]
               delay_range: [1, 2]
         valid_input_callback:
-          # do nothing
+          no_op: true
   - name: imu_monitor
     loop:
       period: 25

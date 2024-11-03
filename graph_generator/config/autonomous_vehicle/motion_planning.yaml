@@ -8,10 +8,7 @@ nodes:
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          publish:
-            - topic: trajectory
-              value_range: [10, 20]
-              delay_range: [1, 2]
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: trajectory
@@ -27,18 +24,18 @@ nodes:
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
-          # do nothing
+          no_op: true
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 15
 
       - topic: imu_data1
         valid_range: [0, 10]
         watchdog: 8
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: trajectory
@@ -54,7 +51,7 @@ nodes:
         valid_range: [0, 10]
         watchdog: 8
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           publish:
             - topic: trajectory
@@ -70,30 +67,33 @@ nodes:
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           action:
             crash: true
         lost_input_callback:
           action:
-            drop_event_for: 50
+            drop_event_for: 15
 
       - topic: control_output
         valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
-          # do nothing
+          no_op: true
         invalid_input_callback:
           action:
-            drop_event_for: 20
+            drop_event_for: 15
         lost_input_callback:
           action:
-            drop_event_for: 20
+            drop_event_for: 15
 
     loop:
       period: 10
       callback:
         publish:
           - topic: capability
+            value_range: [10, 20]
+            delay_range: [1, 2]
+          - topic: trajectory
             value_range: [10, 20]
             delay_range: [1, 2]

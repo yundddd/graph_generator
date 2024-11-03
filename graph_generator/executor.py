@@ -195,9 +195,10 @@ class Executor:
                 return False
             print(f"Time: {self.current_time}")
 
-        # If a node has crashed or is stuck, drop event early.
-        if cur_event.node.maybe_drop_event(self.current_time, cur_event.work):
+        if cur_event.node.is_crashed(self.current_time, cur_event.work):
+            # node has crashed so no need to handle this event.
             return False
+
         if isinstance(cur_event.work, LoopConfig):
             return self._handle_loop_work(cur_event)
 
@@ -236,21 +237,32 @@ class Executor:
             )
             return False
 
-        # normal case
+        # always schedule the next periodic work.
         self._schedule_next_periodic_work(
             loop, cur_event.node, self.current_time + loop.period
         )
-        # Execute callback for this loop:
-        print(f"    {cur_event.node} executing loop callback")
-        cur_event.node.update_event_feature(event=loop, timestamp=cur_event.timestamp)
-        self._execute_callback(cur_event.node, loop.callback)
-        return True
+
+        if not cur_event.node.is_stuck(loop):
+            # Execute callback for this loop:
+            print(f"    {cur_event.node} executing loop callback")
+            cur_event.node.update_event_feature(
+                event=loop, timestamp=cur_event.timestamp
+            )
+            self._execute_callback(cur_event.node, loop.callback)
+            return True
+        return False
 
     def _handle_subscription_work(self, cur_event: Event):
         data = cur_event.subscription_data
         assert data is not None
         sub = cur_event.work
         assert isinstance(sub, SubscriptionConfig)
+
+        # Always first enqueue the next watchdog work, if it has one.
+        self._maybe_enqueue_watchdog_work(cur_event.node, sub)
+
+        if cur_event.node.is_stuck(sub):
+            return False
         cur_fault_injection_config = cur_event.node.fault_injection_config
 
         # handle fault injection first
@@ -298,8 +310,6 @@ class Executor:
 
                 self._execute_callback(cur_event.node, sub.invalid_input_callback)
 
-        # Enqueue the next watchdog work, if it has one.
-        self._maybe_enqueue_watchdog_work(cur_event.node, sub)
         return True
 
     def _handle_watchdog_work(self, cur_event: Event):
@@ -317,6 +327,7 @@ class Executor:
             print(f"    \033[91m{cur_event.node} executing lost input callback\033[0m")
             if watchdog.sub.lost_input_callback:
                 self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
+            self._maybe_enqueue_watchdog_work(cur_event.node, watchdog.sub)
 
     def _schedule_next_periodic_work(
         self, loop: LoopConfig, node: Node, next_time: int
@@ -351,7 +362,7 @@ class Executor:
                 for sub_node in self.graph.topic_subscribers(pub.topic):
                     recv_time_delta = random.randint(*pub.delay_range)
                     print(
-                        f"        publish to {sub_node.config.name}"
+                        f"        publish to {sub_node.config.name} via {pub.topic} "
                         f" +{recv_time_delta}"
                     )
                     new_event = Event(
