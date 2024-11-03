@@ -14,7 +14,7 @@ nodes:
               delay_range: [1, 2]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 2
 
     loop:
       period: 10

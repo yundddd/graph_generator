@@ -29,7 +29,7 @@ nodes:
           no_op: true
         lost_input_callback:
           action:
-            drop_event_for: 15
+            drop_event_for: 5
 
       - topic: imu_data1
         valid_range: [0, 10]
@@ -69,11 +69,10 @@ nodes:
         nominal_callback:
           no_op: true
         invalid_input_callback:
-          action:
-            crash: true
+          no_op: true
         lost_input_callback:
           action:
-            drop_event_for: 15
+            drop_event_for: 2
 
       - topic: control_output
         valid_range: [10, 20]
@@ -82,10 +81,10 @@ nodes:
           no_op: true
         invalid_input_callback:
           action:
-            drop_event_for: 15
+            drop_event_for: 2
         lost_input_callback:
           action:
-            drop_event_for: 15
+            drop_event_for: 2
 
     loop:
       period: 10

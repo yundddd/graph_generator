@@ -19,8 +19,7 @@ nodes:
               value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          action:
-            drop_event_for: 10
+          no_op: true
       - topic: processed_lidar_data1
         valid_range: [100, 200]
         watchdog: 15
@@ -46,10 +45,12 @@ nodes:
               value_range: [10, 20]
               delay_range: [1, 2]
         invalid_input_callback:
-          no_op: true
+          publish:
+            - topic: traffic_light
+              value_range: [20, 30]
+              delay_range: [1, 2]
         lost_input_callback:
-          action:
-            drop_event_for: 10
+          no_op: true
 
   - name: tracker
     # This nodes detects cars, pedestrians, and track them across time.
@@ -66,8 +67,7 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 10
+          no_op: true
       - topic: processed_lidar_data2
         valid_range: [200, 300]
         watchdog: 15
@@ -79,8 +79,7 @@ nodes:
               value_range: [20, 30]
               delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 10
+          no_op: true
 
       - topic: processed_lidar_data3
         valid_range: [300, 400]
@@ -94,7 +93,7 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 1
 
       - topic: processed_lidar_data4
         valid_range: [400, 500]
@@ -108,7 +107,7 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 1
 
       - topic: processed_camera_data1
         valid_range: [100, 200]
@@ -122,7 +121,7 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 1
 
       - topic: processed_camera_data2
         valid_range: [200, 300]
@@ -136,7 +135,7 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 1
 
       - topic: processed_camera_data3
         valid_range: [300, 400]
@@ -150,7 +149,7 @@ nodes:
               delay_range: [5, 8]
         lost_input_callback:
           action:
-            drop_event_for: 10
+            drop_event_for: 1
 
       - topic: traffic_light
         valid_range: [10, 20]
@@ -176,8 +175,7 @@ nodes:
         invalid_input_callback:
           no_op: true
         lost_input_callback:
-          action:
-            drop_event_for: 10
+          no_op: true
 
     loop:
       period: 20

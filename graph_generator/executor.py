@@ -105,7 +105,7 @@ class Executor:
         for node in graph.nodes.values():
             if node.config.subscribe:
                 for sub in node.config.subscribe:
-                    self._maybe_enqueue_watchdog_work(node, sub)
+                    self._maybe_enqueue_watchdog_work(node, sub, 0)
 
         heapq.heapify(self.event_queue)
 
@@ -258,9 +258,6 @@ class Executor:
         sub = cur_event.work
         assert isinstance(sub, SubscriptionConfig)
 
-        # Always first enqueue the next watchdog work, if it has one.
-        self._maybe_enqueue_watchdog_work(cur_event.node, sub)
-
         if cur_event.node.is_stuck(sub):
             return False
         cur_fault_injection_config = cur_event.node.fault_injection_config
@@ -321,13 +318,27 @@ class Executor:
             f"    {cur_event.node} executing watchdog callback on topic "
             f"{watchdog.sub.topic}"
         )
-        if cur_event.node.message_received[watchdog.sub.topic] == data:
+        if cur_event.node.config.name == "planner":
+            print(
+                f"planner last received data on {watchdog.sub.topic}: "
+                f"{cur_event.node.message_received[watchdog.sub.topic]}"
+                f" watchdog data: {data}"
+            )
+        last_receive = cur_event.node.message_received[watchdog.sub.topic]
+        if last_receive == data:
             # If last message receipt time is still the same when the watchdog
             # was configured, it means we have not received anything.
-            print(f"    \033[91m{cur_event.node} executing lost input callback\033[0m")
+            print(
+                f"    \033[91m{cur_event.node} executing lost input callback "
+                f"for {watchdog.sub.topic}\033[0m"
+            )
             if watchdog.sub.lost_input_callback:
                 self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
-            self._maybe_enqueue_watchdog_work(cur_event.node, watchdog.sub)
+            self._maybe_enqueue_watchdog_work(cur_event.node, watchdog.sub, data)
+        else:
+            self._maybe_enqueue_watchdog_work(
+                cur_event.node, watchdog.sub, last_receive
+            )
 
     def _schedule_next_periodic_work(
         self, loop: LoopConfig, node: Node, next_time: int
@@ -390,7 +401,9 @@ class Executor:
         "get flattened feature list for the entire graph"
         return [item for node in self.graph.nodes.values() for item in node.feature]
 
-    def _maybe_enqueue_watchdog_work(self, node: Node, sub: SubscriptionConfig):
+    def _maybe_enqueue_watchdog_work(
+        self, node: Node, sub: SubscriptionConfig, last_received: int
+    ):
         if sub.watchdog is None:
             return
         # wake up and check for lost input
@@ -398,7 +411,7 @@ class Executor:
             timestamp=self.current_time + sub.watchdog,
             node=node,
             work=Event.WatchDogConfig(sub=sub),
-            subscription_data=self.current_time,
+            subscription_data=last_received,
         )
         heapq.heappush(self.event_queue, new_event)
 
