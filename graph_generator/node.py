@@ -156,7 +156,7 @@ class NodeFeatureTemplate:
     }
 
     def initial_feature(self, config: NodeConfig):
-        feature: List[Any] = [1] * len(NodeFeatureTemplate.FeatureIndex)
+        feature: List[Any] = [0] * len(NodeFeatureTemplate.FeatureIndex)
         feature[NodeFeatureTemplate.FeatureIndex.NODE_NAME.value] = config.name
         feature[NodeFeatureTemplate.FeatureIndex.LOOP_PERIOD.value] = (
             config.loop.period if config.loop else 0
