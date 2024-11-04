@@ -6,13 +6,13 @@ from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import networkx as nx
-from pydantic import BaseModel
+from strict_base_model import StrictBaseModel
 
 from graph_generator.node import CallbackConfig, Node, NodeConfig
 
 
 @dataclass
-class GraphConfig(BaseModel):
+class GraphConfig(StrictBaseModel):
     nodes: List[NodeConfig]
 
 

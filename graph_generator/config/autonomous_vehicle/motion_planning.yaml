@@ -7,84 +7,40 @@ nodes:
       - topic: lane_data
         valid_range: [10, 20]
         watchdog: 25
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
         lost_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: trajectory
+              drop: 3
 
       - topic: traffic_light
         valid_range: [10, 20]
         watchdog: 25
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          no_op: true
         lost_input_callback:
-          action:
-            drop_event_for: 5
-
-      - topic: imu_data1
-        valid_range: [0, 10]
-        watchdog: 8
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
-        lost_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
-
-      - topic: imu_data2
-        valid_range: [0, 10]
-        watchdog: 8
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
-        lost_input_callback:
-          publish:
-            - topic: trajectory
-              value_range: [20, 30]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: trajectory
+              drop: 3
 
       - topic: tracks
         valid_range: [10, 20]
         watchdog: 25
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          no_op: true
+
         lost_input_callback:
-          action:
-            drop_event_for: 2
+          fault:
+            affect_publish:
+              topic: trajectory
+              drop: 3
 
       - topic: control_output
         valid_range: [10, 20]
         watchdog: 25
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          action:
-            drop_event_for: 2
+
         lost_input_callback:
-          action:
-            drop_event_for: 2
+          fault:
+            affect_publish:
+              topic: trajectory
+              drop: 3
 
     loop:
       period: 10

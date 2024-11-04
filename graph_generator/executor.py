@@ -1,8 +1,8 @@
 import csv
+import enum
 import heapq
 import os
 import random
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import List
 
@@ -10,23 +10,23 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from matplotlib.animation import FuncAnimation
 
-from graph_generator.fault_injection import (
-    DelayLoopConfig,
-    DelayReceiveConfig,
-    DropLoopConfig,
-    DropPublishConfig,
-    DropReceiveConfig,
-    FaultInjectionConfig,
-    MutatePublishConfig,
-)
+from graph_generator.fault_injection import FaultConfig
 from graph_generator.graph import Graph
 from graph_generator.node import (
     CallbackConfig,
+    InvalidInputCallbackConfig,
     LoopConfig,
+    LostInputCallbackConfig,
     Node,
     NodeConfig,
+    NominalCallbackConfig,
     SubscriptionConfig,
 )
+
+
+class NodeColor(enum.Enum):
+    NORMAL = "blue"
+    FAULTY = "red"
 
 
 @dataclass(order=True)
@@ -69,6 +69,15 @@ class Event:
         )
 
 
+def event_to_str(event: LoopConfig | SubscriptionConfig | Event.WatchDogConfig) -> str:
+    if isinstance(event, LoopConfig):
+        return "loop"
+    elif isinstance(event, SubscriptionConfig):
+        return f"message from {event.topic}"
+    else:
+        return f"watchdog on {event.sub.topic}"
+
+
 class Executor:
     def __init__(
         self,
@@ -76,7 +85,7 @@ class Executor:
         graph: Graph,
         stop_at: int,
         output: str | None = None,
-        fault_injection_config: FaultInjectionConfig | None = None,
+        fault_config: FaultConfig | None = None,
     ):
         """
         Initializes the Executor with the given graph, stop time, optional output file,
@@ -86,14 +95,14 @@ class Executor:
             graph (Graph): The graph to be executed.
             stop_at (int): The simulation stop time.
             output (str | None, optional): The output file path for logging results. Defaults to None.
-            fault_injection_config (FaultInjectionConfig | None, optional): Configuration for fault injection. Defaults to None.
+            fault_config (FaultConfig | None, optional): Configuration for fault injection. Defaults to None.
         """
         self.current_time = 0
         self.graph = graph
         self.stop_at = stop_at
-        if fault_injection_config:
-            self._process_fault_injection_config(fault_injection_config)
-            self.fault_injection_config = fault_injection_config
+        if fault_config:
+            self._process_fault_config(fault_config)
+            self.fault_config = fault_config
 
         nodes_with_loop = graph.nodes_with_loops()
         self.event_queue = [
@@ -105,7 +114,7 @@ class Executor:
         for node in graph.nodes.values():
             if node.config.subscribe:
                 for sub in node.config.subscribe:
-                    self._maybe_enqueue_watchdog_work(node, sub, 0)
+                    self._maybe_enqueue_watchdog_work(node, sub, -1)
 
         heapq.heapify(self.event_queue)
 
@@ -115,6 +124,8 @@ class Executor:
             if os.path.exists(output):
                 os.remove(output)
         random.seed(24)
+        # number of times a plot is drawn. It's used to speed up the visualization.
+        self.draw = 0
 
     def start(self, viz: bool = False):
         """
@@ -125,32 +136,39 @@ class Executor:
             viz (bool, optional): Whether to display the simulation graphically. Defaults to False.
         """
         self._print_sim_summary()
+        self.viz = viz
         if viz:
-            G = nx.DiGraph()
+            self.G = nx.DiGraph()
             for name, _ in self.graph.nodes.items():
-                G.add_node(name)
+                self.G.add_node(name)
             for src, dests in self.graph.adjacency_list.items():
                 for dest in dests:
-                    G.add_edge(src.config.name, dest.config.name)
-            # Define the layout for the graph
-            pos = nx.spring_layout(G, k=5)
+                    self.G.add_edge(src.config.name, dest.config.name)
+
+            self.networkx_nodes = list(self.G.nodes)
+            self.node_colors = [NodeColor.NORMAL.value] * len(self.networkx_nodes)
+            self.pos = nx.spring_layout(self.G, k=5, iterations=200, seed=24)
 
             # Initialize the figure and axis
-            fig, ax = plt.subplots()
-            self.viz_nodes = nx.draw_networkx_nodes(G, pos, node_color="#1f78b4", ax=ax)
-            nx.draw_networkx_edges(G, pos, ax=ax)
-            label_pos = {
-                node: (coord[0], coord[1] + 0.08) for node, coord in pos.items()
+            fig, self.ax = plt.subplots(figsize=(12, 10))
+            nx.draw_networkx_nodes(self.G, self.pos, node_color="blue", ax=self.ax)
+            nx.draw_networkx_edges(self.G, pos=self.pos, ax=self.ax)
+            self.label_pos = {
+                node: (coord[0], coord[1] + 0.08) for node, coord in self.pos.items()
             }
-            nx.draw_networkx_labels(G, label_pos, ax=ax)
+            nx.draw_networkx_labels(self.G, pos=self.label_pos, ax=self.ax)
+            self.timestamp_text = self.ax.text(
+                0, 1, "Time: 0", transform=self.ax.transAxes, ha="left", va="top"
+            )
 
             # returned value should be assigned to keep the animation running
             anim = FuncAnimation(
                 fig,
                 self._simulate_one_step,
-                interval=100,
+                interval=1,
                 blit=False,
-                cache_frame_data=False,
+                cache_frame_data=True,
+                repeat=False,
             )
 
             plt.show()
@@ -173,14 +191,54 @@ class Executor:
                 while len(self.event_queue):
                     self._simulate_one_step()
 
+    def _update_node_colors(self, node_idx: int, color: NodeColor):
+        if self.viz and self.node_colors[node_idx] != color.value:
+            self.node_colors[node_idx] = color.value
+            if self.draw == 20:
+                # redraw everything to speed up the animation.
+                self.draw = 0
+                plt.cla()
+                nx.draw_networkx_edges(self.G, pos=self.pos, ax=self.ax)
+                nx.draw_networkx_labels(self.G, pos=self.label_pos, ax=self.ax)
+                self.timestamp_text = self.ax.text(
+                    0,
+                    1,
+                    f"Time: {self.current_time} ",
+                    transform=self.ax.transAxes,
+                    ha="left",
+                    va="top",
+                )
+                for idx in range(len(self.networkx_nodes)):
+                    nx.draw_networkx_nodes(
+                        self.G,
+                        self.pos,
+                        nodelist=[self.networkx_nodes[idx]],
+                        node_color=self.node_colors[idx],
+                        ax=self.ax,
+                    )
+            else:
+                # just redraw one node.
+                self.draw += 1
+                nx.draw_networkx_nodes(
+                    self.G,
+                    self.pos,
+                    nodelist=[self.networkx_nodes[node_idx]],
+                    node_color=self.node_colors[node_idx],
+                    ax=self.ax,
+                )
+
+    def _node_index(self, node: Node) -> int:
+        return self.graph.node_index(node.config.name)
+
     def _simulate_one_step(self, frame=None):
         """
         Returns:
             bool: True if a node has executed work. False when no work
             has been done and no feature has changed.
         """
+        if self.viz:
+            self.timestamp_text.set_text(f"Time: {self.current_time}")
         if len(self.event_queue) == 0:
-            plt.gca().figure.canvas.stop_event_loop()
             return False
         cur_event = heapq.heappop(self.event_queue)
         if cur_event.timestamp != self.current_time:
@@ -195,8 +253,14 @@ class Executor:
                 return False
             print(f"Time: {self.current_time}")
 
-        if cur_event.node.is_crashed(self.current_time, cur_event.work):
+        if cur_event.node.crashed or cur_event.node.maybe_crash(self.current_time):
+            assert cur_event.work
             # node has crashed so no need to handle this event.
+            print(
+                f"    \033[91m[{cur_event.node}] has crashed and "
+                f"dropped {event_to_str(cur_event.work)}\033[0m"
+            )
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
             return False
 
         if isinstance(cur_event.work, LoopConfig):
@@ -212,101 +276,77 @@ class Executor:
     def _handle_loop_work(self, cur_event: Event):
         loop = cur_event.work
         assert isinstance(loop, LoopConfig)
-        cur_fault_injection_config = cur_event.node.fault_injection_config
         assert loop
 
         # handle fault injection first
-        if cur_event.node.should_delay_loop(self.current_time):
-            assert cur_fault_injection_config
-            assert isinstance(cur_fault_injection_config.affect_loop, DelayLoopConfig)
-
-            next_time = self.current_time + cur_fault_injection_config.affect_loop.delay
-            cur_event.node.delay_loop(next_time)
-            # since the work goes straight back into the queue, we pretend that it didn't do any work and early return
-            self._requeue_work(cur_event, next_time)
+        next_time = cur_event.node.maybe_delay_loop(self.current_time)
+        if next_time is not None:
+            # since the work goes straight back into the queue, we pretend that it didn't do any work and earlyreturn
+            self._schedule_next_periodic_work(loop, cur_event.node, next_time)
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
             return False
-
-        if cur_event.node.should_drop_loop(self.current_time):
-            assert cur_fault_injection_config
-            assert isinstance(cur_fault_injection_config.affect_loop, DropLoopConfig)
-
-            cur_event.node.drop_loop(self.current_time)
+        if cur_event.node.maybe_drop_loop(self.current_time):
             # the current work is dropped but the next one is scheduled.
             self._schedule_next_periodic_work(
                 loop, cur_event.node, self.current_time + loop.period
             )
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
             return False
 
-        # always schedule the next periodic work.
         self._schedule_next_periodic_work(
             loop, cur_event.node, self.current_time + loop.period
         )
-
-        if not cur_event.node.is_stuck(loop):
-            # Execute callback for this loop:
-            print(f"    {cur_event.node} executing loop callback")
-            cur_event.node.update_event_feature(
-                event=loop, timestamp=cur_event.timestamp
-            )
-            self._execute_callback(cur_event.node, loop.callback)
-            return True
-        return False
+        # Execute callback for this loop:
+        print(f"    [{cur_event.node}] executing loop callback")
+        cur_event.node.update_event_feature(event=loop, timestamp=cur_event.timestamp)
+        self._execute_callback(cur_event.node, loop.callback)
+        self._update_node_colors(self._node_index(cur_event.node), NodeColor.NORMAL)
+        return True
 
     def _handle_subscription_work(self, cur_event: Event):
         data = cur_event.subscription_data
         assert data is not None
         sub = cur_event.work
         assert isinstance(sub, SubscriptionConfig)
-
-        if cur_event.node.is_stuck(sub):
-            return False
-        cur_fault_injection_config = cur_event.node.fault_injection_config
-
         # handle fault injection first
-        if cur_event.node.should_drop_receive(self.current_time, sub.topic):
-            assert cur_fault_injection_config
-            assert isinstance(
-                cur_fault_injection_config.affect_receive, DropReceiveConfig
-            )
-            assert cur_fault_injection_config
-            cur_event.node.drop_receive(sub.topic)
+        if cur_event.node.maybe_drop_receive(self.current_time, sub.topic):
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
             return False
-
-        if cur_event.node.should_delay_receive(self.current_time, sub.topic):
-            cur_event.node.delay_receive(sub.topic)
-            assert cur_fault_injection_config
-            assert isinstance(
-                cur_fault_injection_config.affect_receive, DelayReceiveConfig
-            )
+        next_time = cur_event.node.maybe_delay_receive(self.current_time, sub.topic)
+        if next_time is not None:
             # requeue the subscription work to future.
-            self._requeue_work(
-                cur_event,
-                self.current_time + cur_fault_injection_config.affect_receive.delay,
-            )
+            self._requeue_work(cur_event, next_time)
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
             return False
 
         cur_event.node.receive_message(self.current_time, sub.topic)
         cur_event.node.update_event_feature(event=sub, timestamp=cur_event.timestamp)
         if sub.valid_range[0] <= data <= sub.valid_range[1]:
-            if sub.nominal_callback:
-                print(
-                    f"    {cur_event.node} executing nominal input callback on "
-                    f"topic {sub.topic}"
-                )
-                cur_event.node.update_callback_feature(callback=sub.nominal_callback)
-                self._execute_callback(cur_event.node, sub.nominal_callback)
+            callback = (
+                sub.nominal_callback
+                if sub.nominal_callback
+                else NominalCallbackConfig(noop=True)
+            )
+            print(
+                f"    [{cur_event.node}] executing nominal input callback for "
+                f"{sub.topic}"
+            )
+            cur_event.node.update_callback_feature(callback=callback)
+            self._execute_callback(cur_event.node, callback)
         else:
-            if sub.invalid_input_callback:
-                cur_event.node.update_callback_feature(
-                    callback=sub.invalid_input_callback
-                )
-                print(
-                    f"    \033[91m{cur_event.node} executing invalid input callback\033[0m "
-                    f"on topic {sub.topic}"
-                )
+            callback = (
+                sub.invalid_input_callback
+                if sub.invalid_input_callback
+                else InvalidInputCallbackConfig(noop=True)
+            )
+            cur_event.node.update_callback_feature(callback=callback)
+            print(
+                f"    \033[91m[{cur_event.node}] executing invalid input callback "
+                f"for {sub.topic}\033[0m"
+            )
+            self._execute_callback(cur_event.node, callback)
 
-                self._execute_callback(cur_event.node, sub.invalid_input_callback)
-
+        self._update_node_colors(self._node_index(cur_event.node), NodeColor.NORMAL)
         return True
 
     def _handle_watchdog_work(self, cur_event: Event):
@@ -315,26 +355,26 @@ class Executor:
         data = cur_event.subscription_data
         assert data is not None
         print(
-            f"    {cur_event.node} executing watchdog callback on topic "
+            f"    [{cur_event.node}] executing watchdog callback on topic "
             f"{watchdog.sub.topic}"
         )
-        if cur_event.node.config.name == "planner":
-            print(
-                f"planner last received data on {watchdog.sub.topic}: "
-                f"{cur_event.node.message_received[watchdog.sub.topic]}"
-                f" watchdog data: {data}"
-            )
+
         last_receive = cur_event.node.message_received[watchdog.sub.topic]
         if last_receive == data:
             # If last message receipt time is still the same when the watchdog
             # was configured, it means we have not received anything.
             print(
-                f"    \033[91m{cur_event.node} executing lost input callback "
+                f"    \033[91m[{cur_event.node}] executing lost input callback "
                 f"for {watchdog.sub.topic}\033[0m"
             )
-            if watchdog.sub.lost_input_callback:
-                self._execute_callback(cur_event.node, watchdog.sub.lost_input_callback)
+            callback = (
+                watchdog.sub.lost_input_callback
+                if watchdog.sub.lost_input_callback
+                else LostInputCallbackConfig(noop=True)
+            )
+            self._execute_callback(cur_event.node, callback)
             self._maybe_enqueue_watchdog_work(cur_event.node, watchdog.sub, data)
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
         else:
             self._maybe_enqueue_watchdog_work(
                 cur_event.node, watchdog.sub, last_receive
@@ -353,28 +393,26 @@ class Executor:
     def _execute_callback(self, node: Node, callback: CallbackConfig):
         if callback.publish:
             for pub in callback.publish:
-                mutate_publish = node.should_mutate_publish(
-                    cur_time=self.current_time, topic=pub.topic
-                )
-                if mutate_publish[0] and isinstance(
-                    mutate_publish[1], DropPublishConfig
-                ):
-                    # dropped a publish
-                    continue
                 publish_value = random.randint(*pub.value_range)
-                if mutate_publish[0] and isinstance(
-                    mutate_publish[1], MutatePublishConfig
-                ):
-                    # mutate a publish value
-                    publish_value = mutate_publish[1].value
+
+                # handle fault injection first
+                if node.maybe_drop_publish(self.current_time, pub.topic):
+                    self._update_node_colors(self._node_index(node), NodeColor.FAULTY)
+                    continue
+                new_value = node.maybe_mutate_publish(self.current_time, pub.topic)
+                if new_value is not None:
+                    publish_value = new_value
+                    self._update_node_colors(self._node_index(node), NodeColor.FAULTY)
+                else:
+                    self._update_node_colors(self._node_index(node), NodeColor.NORMAL)
 
                 node.update_publish_feature()
                 # publish message to all subscribers of this topic
                 for sub_node in self.graph.topic_subscribers(pub.topic):
                     recv_time_delta = random.randint(*pub.delay_range)
                     print(
-                        f"        publish to {sub_node.config.name} via {pub.topic} "
-                        f" +{recv_time_delta}"
+                        f"        publish to [{sub_node.config.name}] via {pub.topic} "
+                        f" ETA t={recv_time_delta + self.current_time}"
                     )
                     new_event = Event(
                         timestamp=self.current_time + recv_time_delta,
@@ -383,11 +421,10 @@ class Executor:
                         subscription_data=publish_value,
                     )
                     heapq.heappush(self.event_queue, new_event)
-        if callback.action:
-            if callback.action.drop_event_for is not None:
-                node.should_drop_event_count += callback.action.drop_event_for
-            if callback.action.crash is not None and callback.action.crash:
-                node.should_crash_at = self.current_time
+        if callback.fault:
+            callback.fault.inject_at = self.current_time
+            callback.fault.inject_to = node.config.name
+            node.enqueue_fault_config(callback.fault)
 
     def _find_sub_config(self, node: NodeConfig, topic: str) -> SubscriptionConfig:
         if not node.subscribe:
@@ -415,11 +452,17 @@ class Executor:
         )
         heapq.heappush(self.event_queue, new_event)
 
-    def _process_fault_injection_config(self, config: FaultInjectionConfig) -> None:
-        self._validate_fault_injection_config(config)
-        self.graph.nodes[config.inject_to].process_fault_injection_config(config)
+    def _process_fault_config(self, config: FaultConfig) -> None:
+        self._validate_fault_config(config)
+        assert (
+            config.inject_to
+        ), "Fault injection config must specify a target node via inject_to"
+        assert (
+            config.inject_at
+        ), "Fault injection config must specify a time via inject_at"
+        self.graph.nodes[config.inject_to].enqueue_fault_config(config)
 
-    def _validate_fault_injection_config(self, config: FaultInjectionConfig) -> None:
+    def _validate_fault_config(self, config: FaultConfig) -> None:
         self.loop_mutation = []
         self.sub_mutation = []
         self.pub_mutation = []

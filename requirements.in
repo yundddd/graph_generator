@@ -5,10 +5,10 @@ ipdb==0.13.13
 notebook==7.1.0
 pytest==8.0.1
 
-networkx==3.4
-matplotlib==3.9.2
-PyYAML==6.0.2
+networkx==3.4.2
+matplotlib
+PyYAML
 torch==2.4.0
 torch-geometric==2.6.1
-pydantic==2.9.2
+pydantic
 click

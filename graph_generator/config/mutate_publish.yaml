@@ -1,0 +1,6 @@
+inject_to: A
+inject_at: 20
+affect_publish:
+  topic: topic1
+  value: 10000
+  count: 3

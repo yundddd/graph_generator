@@ -1,14 +1,24 @@
 load("@pip//:requirements.bzl", "requirement")
 load("//tools/rules/python:defs.bzl", "graph_generator_py_binary", "graph_generator_py_image", "graph_generator_py_library")
 
-# gazelle:prefix github.com/example/graph_generator
+graph_generator_py_library(
+    name = "strict_base_model",
+    srcs = [
+        "strict_base_model.py",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        requirement("pydantic"),
+    ],
+)
+
 graph_generator_py_library(
     name = "node",
     srcs = [
         "node.py",
     ],
     visibility = ["//visibility:public"],
-    deps = [requirement("pydantic")],
+    deps = [":strict_base_model"],
 )
 
 graph_generator_py_library(
@@ -21,7 +31,7 @@ graph_generator_py_library(
     deps = [
         requirement("networkx"),
         requirement("matplotlib"),
-        requirement("pydantic"),
+        ":strict_base_model",
     ],
 )
 
@@ -32,7 +42,7 @@ graph_generator_py_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        requirement("pydantic"),
+        ":strict_base_model",
     ],
 )
 
