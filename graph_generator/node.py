@@ -130,14 +130,15 @@ class NodeConfig(BaseModel):
 
 class NodeFeatureTemplate:
     class FeatureIndex(Enum):
+        LAST_EVENT_TIMESTAMP = 0
         # static features (constant based on node config):
-        NODE_NAME = 0
+        NODE_NAME = auto()
         NUM_SUBSCRIPTIONS = auto()
         NUM_PUBLICATIONS = auto()
         LOOP_PERIOD = auto()
 
         # dynamic features (changes at runtime)
-        LAST_EVENT_TIMESTAMP = auto()
+
         LAST_EVENT_TYPE = auto()
         CALLBACK_TYPE = auto()
         LOOP_COUNT = auto()

@@ -158,16 +158,19 @@ class Executor:
             if self.output:
                 with open(self.output, mode="a", newline="") as file:
                     writer = csv.writer(file)
-                    last_row_feature = None
+                    initial_feature_written = False
                     while len(self.event_queue):
-                        if self._simulate_one_step():
-                            flattened_features = self._get_all_node_features()
-                            # deduplicate features. Sometimes a step could only involve
-                            # watchdog checks which could lead to no feature update.
-                            if flattened_features != last_row_feature:
-                                # Each row corresponds to each graph feature snapshots
-                                writer.writerow(flattened_features)
-                                last_row_feature = flattened_features
+                        # write all node initial features once
+                        if not initial_feature_written:
+                            for node in self.graph.nodes.values():
+                                writer.writerow(node.feature)
+                            initial_feature_written = True
+
+                        feature_changed, node = self._simulate_one_step()
+                        if feature_changed:
+                            assert node
+                            writer.writerow(node.feature)
+
             else:
                 # just run the simulation without writing to a file
                 while len(self.event_queue):
@@ -181,7 +184,7 @@ class Executor:
         """
         if len(self.event_queue) == 0:
             plt.gca().figure.canvas.stop_event_loop()
-            return False
+            return False, None
         cur_event = heapq.heappop(self.event_queue)
         if cur_event.timestamp != self.current_time:
             self.current_time = cur_event.timestamp
@@ -192,20 +195,20 @@ class Executor:
                 )
                 # clear the queue and discard all remaining work.
                 self.event_queue = []
-                return False
+                return False, None
             print(f"Time: {self.current_time}")
 
         if cur_event.node.is_crashed(self.current_time, cur_event.work):
             # node has crashed so no need to handle this event.
-            return False
+            return False, None
 
         if isinstance(cur_event.work, LoopConfig):
-            return self._handle_loop_work(cur_event)
+            return self._handle_loop_work(cur_event), cur_event.node
 
         elif isinstance(cur_event.work, SubscriptionConfig):
-            return self._handle_subscription_work(cur_event)
+            return self._handle_subscription_work(cur_event), cur_event.node
         elif isinstance(cur_event.work, Event.WatchDogConfig):
-            return self._handle_watchdog_work(cur_event)
+            return self._handle_watchdog_work(cur_event), cur_event.node
         else:
             assert False, "Unknown work type"
 
