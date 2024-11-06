@@ -3324,7 +3324,7 @@
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "vL0VK1eNAQueVr4r2egxRs8hreExTh7sgYOM6hIg/gE=",
         "recordedFileInputs": {
-          "@@//requirements_lock.txt": "59ce9d2bea1091dd52039173ee98acc701a4b222e70549ca9487338d60cfdabf"
+          "@@//requirements_lock.txt": "98ba43f5858dbab290936e9f9dcfd91da0da216ff29452d8fffed686fc0118d5"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -4773,7 +4773,7 @@
             "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
             "ruleClassName": "whl_library",
             "attributes": {
-              "requirement": "networkx==3.4     --hash=sha256:1269b90f8f0d3a4095f016f49650f35ac169729f49b69d0572b2bb142748162b     --hash=sha256:46dad0ec74a825a968e2b36c37ef5b91faa3868f017b2283d9cbff33112222ce",
+              "requirement": "networkx==3.4.2     --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1     --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f",
               "repo": "pip_311",
               "repo_prefix": "pip_311_",
               "whl_patches": {},

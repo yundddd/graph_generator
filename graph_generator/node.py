@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from copy import deepcopy
-from dataclasses import dataclass
+from collections import defaultdict, deque
 from enum import Enum, auto
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple, Type
 
-from pydantic import BaseModel
+from strict_base_model import StrictBaseModel
 
 from graph_generator.fault_injection import (
     DelayLoopConfig,
@@ -14,12 +12,12 @@ from graph_generator.fault_injection import (
     DropLoopConfig,
     DropPublishConfig,
     DropReceiveConfig,
-    FaultInjectionConfig,
+    FaultConfig,
     MutatePublishConfig,
 )
 
 
-class PublishConfig(BaseModel):
+class PublishConfig(StrictBaseModel):
     """
     PublishConfig defines that a node will publish to a topic with a value defined by
     value_range. The delay_range models any transmission delay (unit-less)
@@ -30,22 +28,17 @@ class PublishConfig(BaseModel):
     delay_range: Tuple[int, int] = (0, 0)
 
 
-class ActionConfig(BaseModel):
-    # Drop x events in the future to simulate a node getting stuck.
-    # It will drop loop and subscription events only.
-    drop_event_for: int | None = None
-    # Kill this node for good. No more events will be handled by this node.
-    crash: bool | None = None
-
-
-class CallbackConfig(BaseModel):
+class CallbackConfig(StrictBaseModel):
     """
     A CallbackConfig defines what to do when a node performs a work.
     """
 
+    # trigger publish to other nodes
     publish: List[PublishConfig] | None = None
-    action: ActionConfig | None = None
-    no_op: bool | None = None
+    # trigger fault code paths
+    fault: FaultConfig | None = None
+    # nothing to do
+    noop: bool | None = False
 
 
 class NominalCallbackConfig(CallbackConfig):
@@ -64,7 +57,7 @@ class LoopCallbackConfig(CallbackConfig):
     pass
 
 
-class SubscriptionConfig(BaseModel):
+class SubscriptionConfig(StrictBaseModel):
     """
     A SubscriptionConfig defines what a node does when it receives a message from a topic.
     If the received message is within the valid_range, it will execute a nominal_callback.
@@ -88,12 +81,12 @@ class SubscriptionConfig(BaseModel):
         return self.topic < other.topic
 
 
-class LoopConfig(BaseModel):
+class LoopConfig(StrictBaseModel):
     period: int
     callback: CallbackConfig
 
 
-class NodeConfig(BaseModel):
+class NodeConfig(StrictBaseModel):
     name: str
     loop: LoopConfig | None = None
     subscribe: List[SubscriptionConfig] | None = None
@@ -201,6 +194,143 @@ class NodeFeatureTemplate:
         )
 
 
+class NodeFaultInjectionState:
+    def __init__(self, config: FaultConfig):
+        self.fault_config = config
+
+        self.action_count = 0
+
+        self.done = False
+
+    def handle_action(
+        self,
+        config_attr: str,
+        config_type: Type,
+        count_attr: str,
+        return_attr: str | None = None,
+        cur_time: int | None = None,
+    ) -> int | None:
+        """
+        General handler for actions like delay, drop, or mutate.
+        :param config_attr: Attribute in fault_config to check (e.g., "affect_loop").
+        :param config_type: Expected type of the configuration (e.g., DropLoopConfig).
+        :param count_attr: Attribute in the config to use for comparison (e.g., "drop" or "count").
+        :param return_attr: Optional attribute to return (e.g., "delay" or "value").
+        :param cur_time: Optional current time for delay calculations.
+        :return: Optional integer result, such as a delay time or mutation value.
+        """
+        config = getattr(self.fault_config, config_attr)
+        assert config and isinstance(config, config_type)
+
+        self.action_count += 1
+        if self.action_count == getattr(config, count_attr):
+            self.done = True
+
+        if return_attr:
+            result = getattr(config, return_attr)
+            return result + cur_time if cur_time is not None else result
+        return None
+
+    def crash(self) -> None:
+        self.done = True
+
+    def drop_loop(self) -> None:
+        self.handle_action("affect_loop", DropLoopConfig, "drop")
+
+    def delay_loop(self, cur_time: int) -> int:
+        ret = self.handle_action(
+            "affect_loop", DelayLoopConfig, "count", "delay", cur_time
+        )
+        assert ret is not None
+        return ret
+
+    def delay_receive(self, cur_time: int) -> int:
+        ret = self.handle_action(
+            "affect_receive", DelayReceiveConfig, "count", "delay", cur_time
+        )
+        assert ret is not None
+        return ret
+
+    def drop_receive(self) -> None:
+        self.handle_action("affect_receive", DropReceiveConfig, "drop")
+
+    def drop_publish(self) -> None:
+        self.handle_action("affect_publish", DropPublishConfig, "drop")
+
+    def mutate_publish(self) -> int:
+        ret = self.handle_action(
+            "affect_publish", MutatePublishConfig, "count", "value"
+        )
+        assert ret is not None
+        return ret
+
+    def should_crash(self, cur_time: int) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.crash is not None
+            and self.fault_config.crash is True
+        )
+
+    def should_drop_loop(self, cur_time: int) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_loop is not None
+            and isinstance(self.fault_config.affect_loop, DropLoopConfig)
+            and self.action_count < self.fault_config.affect_loop.drop
+        )
+
+    def should_delay_loop(self, cur_time: int) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_loop is not None
+            and isinstance(self.fault_config.affect_loop, DelayLoopConfig)
+            and self.action_count < self.fault_config.affect_loop.count
+        )
+
+    def should_drop_receive(self, cur_time: int, topic: str) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_receive is not None
+            and isinstance(self.fault_config.affect_receive, DropReceiveConfig)
+            and topic == self.fault_config.affect_receive.topic
+            and self.action_count < self.fault_config.affect_receive.drop
+        )
+
+    def should_delay_receive(self, cur_time: int, topic: str) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_receive is not None
+            and isinstance(self.fault_config.affect_receive, DelayReceiveConfig)
+            and topic == self.fault_config.affect_receive.topic
+            and self.action_count < self.fault_config.affect_receive.count
+        )
+
+    def should_drop_publish(self, cur_time: int, topic: str) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_publish is not None
+            and isinstance(self.fault_config.affect_publish, DropPublishConfig)
+            and topic == self.fault_config.affect_publish.topic
+            and self.action_count < self.fault_config.affect_publish.drop
+        )
+
+    def should_mutate_publish(self, cur_time: int, topic: str) -> bool:
+        assert self.fault_config.inject_at
+        return (
+            cur_time >= self.fault_config.inject_at
+            and self.fault_config.affect_publish is not None
+            and isinstance(self.fault_config.affect_publish, MutatePublishConfig)
+            and topic == self.fault_config.affect_publish.topic
+            and self.action_count < self.fault_config.affect_publish.count
+        )
+
+
 class Node:
     def __init__(self, config: NodeConfig):
         self.config = config
@@ -209,7 +339,12 @@ class Node:
         # Time when the last message was received for a topic.
         self.message_received = defaultdict(int)
         Node._validate_config(config)
-        self.init_fault_injection_state()
+        self.pending_faults: deque[NodeFaultInjectionState] = deque()
+        self.is_crashed = False
+
+    @property
+    def crashed(self) -> bool:
+        return self.is_crashed
 
     def update_event_feature(self, **kwarg):
         self.feature_template.update_event_feature(self.feature, **kwarg)
@@ -220,163 +355,110 @@ class Node:
     def update_callback_feature(self, **kwarg):
         self.feature_template.update_callback_feature(self.feature, **kwarg)
 
-    def init_fault_injection_state(self):
-        self.fault_injection_config: FaultInjectionConfig | None = None
-        self.dropped_loop_count = 0
-        self.delayed_loop_count = 0
-        self.dropped_receive_count = defaultdict(int)
+    def enqueue_fault_config(self, config: FaultConfig):
+        assert (
+            config.inject_to == self.config.name
+        ), "Cannot inject fault to a node that doesn't match the name"
+        self.pending_faults.append(NodeFaultInjectionState(config))
 
-        self.should_drop_event_count = 0
-        self.should_crash_at: Optional[int] = None
-        # record when and how we should mutate publish
-        self.should_mutate_publish_at: Optional[
-            Tuple[int, MutatePublishConfig | DropPublishConfig]
-        ] = None
+    def crash(self) -> None:
+        self.is_crashed = True
 
-    def process_fault_injection_config(self, config: FaultInjectionConfig):
-        self.fault_injection_config = deepcopy(config)
-        if config.affect_publish:
-            self.should_mutate_publish_at = (
-                config.inject_at,
-                config.affect_publish,
-            )
-        if config.crash is not None and config.crash:
-            self.should_crash_at = config.inject_at
-
-    def drop_loop(self, cur_time: int):
-        print(f"    \033[91mNode: {self.config.name} dropped loop at {cur_time}\033[0m")
-        self.dropped_loop_count += 1
-
-    def delay_loop(self, next_time: int):
-        print(
-            "    \033[91mNode: "
-            f"{self.config.name} delayed loop to {next_time}\033[0m"
-        )
-        # Since we can only delay once, erase the config to avoid accounting.
-        self.fault_injection_config = None
-        pass
-
-    def drop_receive(self, topic: str):
-        print(
-            "    \033[91mNode: "
-            f"{self.config.name} dropped received message from topic "
-            f"{topic}\033[0m"
-        )
-        self.dropped_receive_count[topic] += 1
-
-    def delay_receive(self, topic: str):
-        print(
-            "    \033[91mNode: "
-            f"{self.config.name} delayed received message from topic "
-            f"{topic}\033[0m"
-        )
-        # Since we can only delay once, erase the config to avoid accounting.
-        self.fault_injection_config = None
-        pass
-
-    def is_crashed(self, cur_time: int, event: Any) -> bool:
-        if self.should_crash_at is not None and cur_time >= self.should_crash_at:
-            print(
-                f"    \033[91mNode: {self.config.name} crashed and "
-                f"dropped {self._event_to_str(event)}\033[0m"
-            )
-            return True
-        return False
-
-    def is_stuck(self, event: Any) -> bool:
-        if self.should_drop_event_count > 0:
-            print(
-                f"    \033[91mNode: {self.config.name} is stuck and "
-                f"dropped {self._event_to_str(event)} "
-                f"{self.should_drop_event_count}\033[0m"
-            )
-            self.should_drop_event_count -= 1
-            return True
-        return False
-
-    def _event_to_str(self, event: Any) -> str:
-        if isinstance(event, LoopConfig):
-            return "loop"
-        elif isinstance(event, SubscriptionConfig):
-            return f"message from {event.topic}"
-        else:
-            return f"watchdog on {event.sub.topic}"
-
-    def should_mutate_publish(
-        self, cur_time: int, topic: str
-    ) -> Tuple[bool, MutatePublishConfig | DropPublishConfig | None]:
-        """
-        Determines if a publish operation should be mutated based on the current time and topic.
-
-        Args:
-            cur_time (int): The current time unit.
-            topic (str): The topic for which the mutation is being checked.
-
-        Returns:
-            Tuple[bool, MutatePublishConfig | DropPublishConfig | None]: A tuple where the first element indicates
-            if a mutation should occur, and the second element is the configuration for the mutation or drop,
-            or None if no mutation should occur.
-        """
-        if (
-            self.should_mutate_publish_at is not None
-            and cur_time >= self.should_mutate_publish_at[0]
-            and topic == self.should_mutate_publish_at[1].topic
-        ):
-            if (
-                isinstance(self.should_mutate_publish_at[1], DropPublishConfig)
-                and self.should_mutate_publish_at[1].drop > 0
-            ):
+    def maybe_drop_loop(self, cur_time: int) -> bool:
+        for fault in self.pending_faults:
+            if fault.should_drop_loop(cur_time):
                 print(
-                    f"    \033[91mNode: {self.config.name} dropped publish to topic "
+                    f"    \033[91mNode: {self.config.name} dropped loop "
+                    f"at {cur_time}\033[0m"
+                )
+                fault.drop_loop()
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return True
+        return False
+
+    def maybe_delay_loop(self, cur_time: int) -> int | None:
+        for fault in self.pending_faults:
+            if fault.should_delay_loop(cur_time):
+                next_time = fault.delay_loop(cur_time)
+                print(
+                    "    \033[91mNode: "
+                    f"{self.config.name} delayed loop to {next_time}\033[0m"
+                )
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return next_time
+        return None
+
+    def maybe_drop_receive(self, cur_time: int, topic: str) -> bool:
+        for fault in self.pending_faults:
+            if fault.should_drop_receive(cur_time, topic):
+                fault.drop_receive()
+                print(
+                    "    \033[91mNode: "
+                    f"{self.config.name} dropped received message from "
                     f"{topic}\033[0m"
                 )
-                self.should_mutate_publish_at[1].drop -= 1
-                return True, self.should_mutate_publish_at[1]
-            print(
-                f"    \033[91mNode: {self.config.name} mutated publish to topic "
-                f"{topic}\033[0m"
-            )
-            return True, self.should_mutate_publish_at[1]
-        return False, None
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return True
+        return False
 
-    def should_drop_loop(self, cur_time: int):
-        return (
-            self.fault_injection_config
-            and self.fault_injection_config.affect_loop
-            and isinstance(self.fault_injection_config.affect_loop, DropLoopConfig)
-            and cur_time >= self.fault_injection_config.inject_at
-            and self.dropped_loop_count < self.fault_injection_config.affect_loop.drop
-        )
+    def maybe_delay_receive(self, cur_time: int, topic: str) -> int | None:
+        for fault in self.pending_faults:
+            if fault.should_delay_receive(cur_time, topic):
+                next_time = fault.delay_receive(cur_time)
+                print(
+                    "    \033[91m"
+                    f"[{self.config.name}] delayed received message from "
+                    f"{topic} to {next_time}\033[0m"
+                )
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return next_time
+        return None
 
-    def should_delay_loop(self, cur_time: int):
-        return (
-            self.fault_injection_config
-            and self.fault_injection_config.affect_loop
-            and isinstance(self.fault_injection_config.affect_loop, DelayLoopConfig)
-            and cur_time >= self.fault_injection_config.inject_at
-        )
+    def maybe_drop_publish(self, cur_time: int, topic: str) -> bool:
+        for fault in self.pending_faults:
+            if fault.should_drop_publish(cur_time, topic):
+                fault.drop_publish()
+                print(
+                    "    \033[91m"
+                    f"[{self.config.name}] dropped published message to "
+                    f"{topic}\033[0m"
+                )
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return True
+        return False
 
-    def should_drop_receive(self, cur_time: int, topic: str):
-        return (
-            self.fault_injection_config
-            and self.fault_injection_config.affect_receive
-            and isinstance(
-                self.fault_injection_config.affect_receive, DropReceiveConfig
-            )
-            and cur_time >= self.fault_injection_config.inject_at
-            and self.dropped_receive_count[topic]
-            < self.fault_injection_config.affect_receive.drop
-        )
+    def maybe_mutate_publish(self, cur_time: int, topic: str) -> int | None:
+        for fault in self.pending_faults:
+            if fault.should_mutate_publish(cur_time, topic):
+                new_value = fault.mutate_publish()
+                print(
+                    "    \033[91m"
+                    f"[{self.config.name}] mutated published message to "
+                    f"{topic}\033[0m"
+                )
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                return new_value
+        return None
 
-    def should_delay_receive(self, cur_time: int, topic: str):
-        return (
-            self.fault_injection_config
-            and self.fault_injection_config.affect_receive
-            and isinstance(
-                self.fault_injection_config.affect_receive, DelayReceiveConfig
-            )
-            and cur_time >= self.fault_injection_config.inject_at
-        )
+    def maybe_crash(self, cur_time: int) -> bool:
+        for fault in self.pending_faults:
+            if fault.should_crash(cur_time):
+                fault.crash()
+                print(
+                    "    \033[91m" f"[{self.config.name}] crashed at {cur_time}\033[0m"
+                )
+
+                if fault.done:
+                    self.pending_faults.remove(fault)
+                self.crash()
+                return True
+        return False
 
     def receive_message(self, cur_time: int, topic: str):
         self.message_received[topic] = cur_time
@@ -394,4 +476,4 @@ class Node:
         return self.config.name > other.config.name
 
     def __str__(self):
-        return f"Node: {self.config.name}"
+        return f"{self.config.name}"

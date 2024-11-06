@@ -8,49 +8,71 @@ nodes:
       - topic: road_data
         valid_range: [20, 30]
         watchdog: 25
-        nominal_callback:
-          publish:
-            - topic: lane_data
-              value_range: [10, 20]
-              delay_range: [1, 2]
         invalid_input_callback:
-          publish:
-            - topic: lane_data
-              value_range: [20, 30]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: lane_data
+              value: 40
+              count: 2
         lost_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: lane_data
+              drop: 2
+
       - topic: processed_lidar_data1
         valid_range: [100, 200]
         watchdog: 15
-        nominal_callback:
-          no_op: true
         invalid_input_callback:
-          publish:
-            - topic: lane_data
-              value_range: [20, 30]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: lane_data
+              drop: 2
         lost_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: lane_data
+              drop: 2
+
+      - topic: processed_lidar_data2
+        valid_range: [200, 300]
+        watchdog: 15
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: lane_data
+              drop: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: lane_data
+              drop: 2
+
+    loop:
+      period: 20
+      callback:
+        publish:
+          - topic: lane_data
+            value_range: [10, 20]
+            delay_range: [1, 2]
 
   - name: traffic_light
     # This node fails silently
     subscribe:
       - topic: lane_data
-        valid_range: [20, 30]
+        valid_range: [10, 20]
         watchdog: 25
         nominal_callback:
           publish:
             - topic: traffic_light
               value_range: [10, 20]
               delay_range: [1, 2]
+
         invalid_input_callback:
           publish:
             - topic: traffic_light
               value_range: [20, 30]
               delay_range: [1, 2]
-        lost_input_callback:
-          no_op: true
 
   - name: tracker
     # This nodes detects cars, pedestrians, and track them across time.
@@ -59,123 +81,83 @@ nodes:
       - topic: processed_lidar_data1
         valid_range: [100, 200]
         watchdog: 15
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+
       - topic: processed_lidar_data2
         valid_range: [200, 300]
         watchdog: 15
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: processed_lidar_data3
         valid_range: [300, 400]
         watchdog: 15
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 1
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: processed_lidar_data4
         valid_range: [400, 500]
         watchdog: 15
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 1
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: processed_camera_data1
         valid_range: [100, 200]
         watchdog: 7
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 1
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: processed_camera_data2
         valid_range: [200, 300]
         watchdog: 7
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 1
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: processed_camera_data3
         valid_range: [300, 400]
         watchdog: 7
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          action:
-            drop_event_for: 1
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: traffic_light
         valid_range: [10, 20]
         watchdog: 25
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
         lost_input_callback:
-          publish:
-            - topic: tracks
-              value_range: [20, 30]
-              delay_range: [5, 8]
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
 
       - topic: capability
         valid_range: [10, 20]
         watchdog: 15
-        nominal_callback:
-          no_op: true
-        invalid_input_callback:
-          no_op: true
         lost_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 3
 
     loop:
       period: 20

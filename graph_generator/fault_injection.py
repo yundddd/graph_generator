@@ -1,10 +1,10 @@
 import csv
 import os
 
-from pydantic import BaseModel
+from strict_base_model import StrictBaseModel
 
 
-class DropPublishConfig(BaseModel):
+class DropPublishConfig(StrictBaseModel):
     """
     This config describes which topic to drop and how many times.
     """
@@ -13,16 +13,17 @@ class DropPublishConfig(BaseModel):
     drop: int
 
 
-class MutatePublishConfig(BaseModel):
+class MutatePublishConfig(StrictBaseModel):
     """
     This config describes which topic to mutate and use what value.
     """
 
     topic: str
     value: int
+    count: int = 1
 
 
-class DropReceiveConfig(BaseModel):
+class DropReceiveConfig(StrictBaseModel):
     """
     This config describes which topic to drop received messages from and how many times.
     """
@@ -31,7 +32,7 @@ class DropReceiveConfig(BaseModel):
     drop: int
 
 
-class DelayReceiveConfig(BaseModel):
+class DelayReceiveConfig(StrictBaseModel):
     """
     This config describes which topic to delay a received message.
     It only delays a single instance.
@@ -39,9 +40,10 @@ class DelayReceiveConfig(BaseModel):
 
     topic: str
     delay: int
+    count: int = 1
 
 
-class DelayLoopConfig(BaseModel):
+class DelayLoopConfig(StrictBaseModel):
     """
     This config describes how long to delay a loop work. Subsequent loop work will also contain the same phase shift.
      For example if a node nominally execute periodic work as:
@@ -54,9 +56,10 @@ class DelayLoopConfig(BaseModel):
     """
 
     delay: int
+    count: int = 1
 
 
-class DropLoopConfig(BaseModel):
+class DropLoopConfig(StrictBaseModel):
     """
     This config describes the number of times to drop periodic work.
     We will still schedule subsequent periodic work with the same phase.
@@ -72,11 +75,11 @@ class DropLoopConfig(BaseModel):
     drop: int
 
 
-class FaultInjectionConfig(BaseModel):
+class FaultConfig(StrictBaseModel):
     # target node name
-    inject_to: str
+    inject_to: str | None = None
     # when to inject
-    inject_at: int
+    inject_at: int | None = None
     affect_publish: DropPublishConfig | MutatePublishConfig | None = None
     affect_receive: DropReceiveConfig | DelayReceiveConfig | None = None
     affect_loop: DelayLoopConfig | DropLoopConfig | None = None

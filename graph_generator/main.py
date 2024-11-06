@@ -4,7 +4,7 @@ import click
 import yaml
 
 from graph_generator.executor import Executor
-from graph_generator.fault_injection import FaultInjectionConfig
+from graph_generator.fault_injection import FaultConfig
 from graph_generator.graph import Graph, GraphConfig
 
 T = TypeVar("T")
@@ -84,34 +84,32 @@ def main(
         print("Dumped edge index to", edge_index_output)
         return
 
-    fault_injection_config = (
-        config_from_yaml(fault, FaultInjectionConfig) if fault else None
-    )
+    fault_config = config_from_yaml(fault, FaultConfig) if fault else None
     if inject_at is not None:
-        assert fault_injection_config
-        fault_injection_config.inject_at = inject_at
-        print("here")
+        assert fault_config
+        fault_config.inject_at = inject_at
 
-    if fault_injection_config and (
-        fault_injection_config.inject_at >= stop
-        or fault_injection_config.inject_at <= 0
-    ):
-        raise ValueError(
-            f"Cannot inject fault at a non-positive time or exceeds the stop time {stop}"
-        )
+    if fault_config:
+        assert fault_config.inject_at
+        assert fault_config.inject_to, "Must specify --inject_to"
+        if fault_config.inject_at >= stop or fault_config.inject_at <= 0:
+            raise ValueError(
+                f"Cannot inject fault at a non-positive time or exceeds the stop time {stop}"
+            )
 
     executor = Executor(
         graph=graph_obj,
         stop_at=stop,
-        fault_injection_config=fault_injection_config,
+        fault_config=fault_config,
         output=node_feature_output,
     )
 
     executor.start(viz=viz)
 
-    if fault_injection_config and fault_label_output:
-        fault_injection_config.dump(
-            index=graph_obj.node_index(fault_injection_config.inject_to),
+    if fault_config and fault_label_output:
+        assert fault_config.inject_to
+        fault_config.dump(
+            index=graph_obj.node_index(fault_config.inject_to),
             output=fault_label_output,
         )
 

@@ -43,7 +43,7 @@ nodes:
             value_range: [30, 40]
             delay_range: [1, 2]
 
-  # a monitor for all lidars hardware. If the hardware is not healthy, it can communicate to downstream.
+  # a monitor for all lidar hardware. If the hardware is not healthy, it can communicate to downstream.
   - name: lidar_monitor
     loop:
       period: 50
@@ -70,24 +70,21 @@ nodes:
             - topic: processed_lidar_data1
               value_range: [200, 300]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: lidar_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: lidar_state
         valid_range: [0, 10]
-        watchdog: 250
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: lidar_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data1
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: lidar_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data1
+              drop: 3
 
   - name: lidar_extractor2
     subscribe:
@@ -104,24 +101,21 @@ nodes:
             - topic: processed_lidar_data2
               value_range: [300, 400]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: lidar_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: lidar_state
         valid_range: [0, 10]
-        watchdog: 250
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: lidar_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data2
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: lidar_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data2
+              drop: 3
 
   - name: lidar_extractor3
     subscribe:
@@ -138,24 +132,21 @@ nodes:
             - topic: processed_lidar_data3
               value_range: [400, 500]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: lidar_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: lidar_state
         valid_range: [0, 10]
-        watchdog: 250
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: lidar_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data3
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: lidar_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data3
+              drop: 3
 
   - name: lidar_extractor4
     subscribe:
@@ -172,24 +163,21 @@ nodes:
             - topic: processed_lidar_data4
               value_range: [500, 600]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: lidar_error4
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: lidar_state
         valid_range: [0, 10]
-        watchdog: 250
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: lidar_error4
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data4
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: lidar_error4
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_lidar_data4
+              drop: 3
 
   # camera drivers
   - name: camera_driver1
@@ -252,26 +240,21 @@ nodes:
             - topic: processed_camera_data1
               value_range: [200, 300]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: camera_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: camera_state
         valid_range: [0, 10]
-        watchdog: 15
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: camera_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_camera_data1
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: camera_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
-        valid_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: processed_camera_data1
+              drop: 3
 
   - name: camera_extractor2
     subscribe:
@@ -288,26 +271,21 @@ nodes:
             - topic: processed_camera_data2
               value_range: [300, 400]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: camera_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: camera_state
         valid_range: [0, 10]
-        watchdog: 15
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: camera_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_camera_data2
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: camera_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
-        valid_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: processed_camera_data2
+              drop: 3
 
   - name: camera_extractor3
     subscribe:
@@ -324,26 +302,21 @@ nodes:
             - topic: processed_camera_data3
               value_range: [400, 500]
               delay_range: [1, 5]
-        lost_input_callback:
-          publish:
-            - topic: camera_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
+
       - topic: camera_state
         valid_range: [0, 10]
-        watchdog: 15
+        watchdog: 70
         invalid_input_callback:
-          publish:
-            - topic: camera_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
+          fault:
+            affect_publish:
+              topic: processed_camera_data3
+              drop: 3
+
         lost_input_callback:
-          publish:
-            - topic: camera_error3
-              value_range: [0, 10]
-              delay_range: [1, 2]
-        valid_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: processed_camera_data3
+              drop: 3
 
   - name: imu_driver1
     loop:
@@ -359,16 +332,14 @@ nodes:
         watchdog: 30
         invalid_input_callback:
           publish:
-            - topic: imu_error1
-              value_range: [0, 10]
+            - topic: imu_data1
+              value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          publish:
-            - topic: imu_error1
-              value_range: [0, 10]
-              delay_range: [1, 2]
-        valid_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: imu_data1
+              drop: 3
 
   - name: imu_driver2
     loop:
@@ -384,16 +355,15 @@ nodes:
         watchdog: 30
         invalid_input_callback:
           publish:
-            - topic: imu_error2
-              value_range: [0, 10]
+            - topic: imu_data2
+              value_range: [20, 30]
               delay_range: [1, 2]
         lost_input_callback:
-          publish:
-            - topic: imu_error2
-              value_range: [0, 10]
-              delay_range: [1, 2]
-        valid_input_callback:
-          no_op: true
+          fault:
+            affect_publish:
+              topic: imu_data2
+              drop: 3
+
   - name: imu_monitor
     loop:
       period: 25
