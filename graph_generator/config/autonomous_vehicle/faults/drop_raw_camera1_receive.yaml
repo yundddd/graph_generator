@@ -1,0 +1,5 @@
+inject_to: camera_extractor1
+inject_at: 20
+affect_receive:
+  topic: raw_camera_data1
+  drop: 10
