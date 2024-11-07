@@ -103,14 +103,14 @@ The executor is capable of generating a large number of datasets based on config
 bazel run //graph_generator/dataset:generate_datasets -- --graph graph_generator/config/autonomous_vehicle/graph.yaml --output_dir ~/output  --fault_dir graph_generator/config/autonomous_vehicle/faults --stop 1500 --fault_begin 800 --fault_end 1100 --max_num_sweep 30
 ```
 
-the executor injects all faults specified in the fault_dir directory into the graph (defined by graph.yaml), and sweeps the injection time between 800 adn 1100 time units with equal partitions (800,810,820...). Sweeping the fault injection time may allow models to learn fault transition better. The output files have the following structure:
+the executor injects all faults specified in the fault_dir directory into the graph (defined by graph.yaml), and sweeps the injection time between 800 and 1100 time units with equal partitions (800,810,820...). Sweeping the fault injection time may allow models to learn fault transition better. The output files have the following structure:
 
 ```
 - ~/output/
    |_____ fault_file1_name/
           |______ edge_index.csv
           |______ fault_label_inject_at_800.csv
-          |______ fatul_label_inject_at_810.csc
+          |______ fatul_label_inject_at_810.csv
           ...
           |______ node_feature_inject_at_800.csv
           |______ node_feature_inject_at_800.csv
