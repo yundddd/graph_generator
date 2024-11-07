@@ -124,13 +124,6 @@ def main(
     fault_label_output: str | None,
     inject_at: int | None,
 ):
-    """
-      A
-     / \
-    B   C
-   /     \
-  D       E
-    """
     handle_main(
         graph=graph,
         fault=fault,
