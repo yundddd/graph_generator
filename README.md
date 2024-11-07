@@ -119,7 +119,7 @@ the executor injects all faults specified in the fault_dir directory into the gr
    |_____ fault_file2_name/
           |______ edge_index.csv
           |______ fault_label_inject_at_800.csv
-          |______ fatul_label_inject_at_810.csc
+          |______ fatul_label_inject_at_810.csv
           ...
           |______ node_feature_inject_at_800.csv
           |______ node_feature_inject_at_800.csv
@@ -127,7 +127,7 @@ the executor injects all faults specified in the fault_dir directory into the gr
    |_____ fault_file3_name/
           |______ edge_index.csv
           |______ fault_label_inject_at_800.csv
-          |______ fatul_label_inject_at_810.csc
+          |______ fatul_label_inject_at_810.csv
           ...
           |______ node_feature_inject_at_800.csv
           |______ node_feature_inject_at_800.csv
