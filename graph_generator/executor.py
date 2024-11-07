@@ -333,6 +333,7 @@ class Executor:
             )
             cur_event.node.update_callback_feature(callback=callback)
             self._execute_callback(cur_event.node, callback)
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.NORMAL)
         else:
             callback = (
                 sub.invalid_input_callback
@@ -345,8 +346,8 @@ class Executor:
                 f"for {sub.topic}\033[0m"
             )
             self._execute_callback(cur_event.node, callback)
+            self._update_node_colors(self._node_index(cur_event.node), NodeColor.FAULTY)
 
-        self._update_node_colors(self._node_index(cur_event.node), NodeColor.NORMAL)
         return True
 
     def _handle_watchdog_work(self, cur_event: Event):

@@ -1,4 +1,4 @@
 inject_to: A
 inject_at: 20
 affect_loop:
-  drop: 3
+  drop: 10

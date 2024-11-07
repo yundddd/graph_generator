@@ -18,6 +18,5 @@ merge_yaml(
 
 filegroup(
     name = "config",
-    srcs = glob(["**/*"]) + [":graph"],
-    visibility = ["//visibility:public"],
+    srcs = glob(["faults/**/*"]) + [":graph"],
 )

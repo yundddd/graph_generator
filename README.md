@@ -21,10 +21,6 @@ git clone https://github.com/yundddd/graph_generator.git
 
 Install [bazel](https://bazel.build/install) to get hermetic and reproducible builds. It works on Linux or Mac out of box. If you are on Windows, please enable [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and clone the repo inside.
 
-## Define Graph Structure
-
-See `graph_generator/main` for a default graph.
-
 ## Run the generator
 
 Execute the following command to generate an execution graph based on the defined structure:
@@ -46,10 +42,10 @@ Run graph executor based on graph.yaml and stop at time unit `50`, save node fea
 bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --stop 50
 ```
 
-Run graph executor and inject a fault specified in `delay_loop.yaml`. The `--fault_label_output` must be specified to capture where and when a fault was injected. The fault_label_output file contains a single line in the form of `node_index,fault_injection_time`. The fault injection time can be specified in the fault injection yaml config, and be overridden by the `--inject_at` option.
+Run graph executor and inject a fault specified in `drop_loop.yaml`. The `--fault_label_output` must be specified to capture where and when a fault was injected. The fault_label_output file contains a single line in the form of `node_index,fault_injection_time`. The fault injection time can be specified in the fault injection yaml config, and be overridden by the `--inject_at` option. When `--viz` is used, an animation will be shown. Blue nodes are considered healthy, while red nodes are exhibiting faulty behaviors (for example, dropping, delaying callbacks/messages). One can observe how faults propagate from one node to all downstream node, and even how faults recover as time goes by.
 
 ```bash
-bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --fault graph_generator/config/delay_loop.yaml --fault_label_output ~/fault_label --inject_at 20
+bazel run //graph_generator:main -- --graph graph_generator/config/graph.yaml --node_feature_output ~/out --fault graph_generator/config/drop_loop.yaml --fault_label_output ~/fault_label --inject_at 30 --viz --stop 150
 ```
 
 ## Config Language
@@ -89,9 +85,57 @@ affect_receive:
 
 This config injects a fault to node B at time 20 to delay its receipt of messages on `topic1`. Please see this [fault_injection.py](graph_generator/fault_injection.py) for a full list of faults supported.
 
-## Example Configs And Dataset
+## Example Configs
 
-In the [config](graph_generator/config/autonomous_vehicle/) folder, we have created an example graph as well as the dataset.
+In the [config](graph_generator/config/autonomous_vehicle/) folder, we have created an example graph that approximates autonomous vehicle software architecture. You can visualize how faults propagate with the following command:
+
+```bash
+bazel run //graph_generator:main -- --graph graph_generator/config/autonomous_vehicle/graph.yaml --node_feature_output ~/out --fault graph_generator/config/autonomous_vehicle/faults/crash_camera_driver1.yaml --fault_label_output /tmp/a --stop 200 --inject_at 10 --viz
+```
+
+> ⚠️ **Warning**:: Using `--viz` can slow down execution significantly therefore when this flag is present, dataset generation is turned of.
+
+## Generating Datasets
+
+The executor is capable of generating a large number of datasets based on configurations. Users can sweep over define faults and inject them at various time. For example, by running the following command:
+
+```bash
+bazel run //graph_generator/dataset:generate_datasets -- --graph graph_generator/config/autonomous_vehicle/graph.yaml --output_dir ~/output  --fault_dir graph_generator/config/autonomous_vehicle/faults --stop 1500 --fault_begin 800 --fault_end 1100 --max_num_sweep 30
+```
+
+the executor injects all faults specified in the fault_dir directory into the graph (defined by graph.yaml), and sweeps the injection time between 800 and 1100 time units with equal partitions (800,810,820...). Sweeping the fault injection time may allow models to learn fault transition better. The output files have the following structure:
+
+```
+- ~/output/
+   |_____ fault_file1_name/
+          |______ edge_index.csv
+          |______ fault_label_inject_at_800.csv
+          |______ fatul_label_inject_at_810.csv
+          ...
+          |______ node_feature_inject_at_800.csv
+          |______ node_feature_inject_at_800.csv
+          ...
+
+   |_____ fault_file2_name/
+          |______ edge_index.csv
+          |______ fault_label_inject_at_800.csv
+          |______ fatul_label_inject_at_810.csv
+          ...
+          |______ node_feature_inject_at_800.csv
+          |______ node_feature_inject_at_800.csv
+          ...
+   |_____ fault_file3_name/
+          |______ edge_index.csv
+          |______ fault_label_inject_at_800.csv
+          |______ fatul_label_inject_at_810.csv
+          ...
+          |______ node_feature_inject_at_800.csv
+          |______ node_feature_inject_at_800.csv
+          ...
+    ...
+```
+
+> **Note**: It is intended to always output the edge_index even though we are running the command with the same graph over and over again, in order to make dataset conversion easier (by treating the entire sub-fault directory as input).
 
 ## Limitation
 
