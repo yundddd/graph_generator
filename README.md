@@ -153,3 +153,22 @@ Remember to apply lint before submitting PRs. The max line length for this repo 
 # At project root
 ./lint.sh
 ```
+
+## Running notebooks
+
+Jupyter notebooks in `notebooks` directory can be run with:
+
+```bash
+bazel run //notebooks:gnn
+```
+
+A Jupyter notebook server will be started and print out the server address:
+
+```bash
+[I 21:27:13.442 NotebookApp] Jupyter Notebook 6.5.7 is running at:
+[I 21:27:13.442 NotebookApp] http://localhost:8888/?token=3d162666a16919836d2e93242300777e395c086e2390f729
+```
+
+A browser will also open that allows you to experiment. However, sometimes code change in browser will not be saved to the source notebook. A more reliable way is to use VS-code's Jupyter plugin and edit right inside the editor. Copy and paste the Jupyter notebook server address when selecting the kernel.
+
+<img src="selecting_kernel.png" alt="Graph Executor" width="700"/>

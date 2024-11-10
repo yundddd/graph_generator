@@ -2,9 +2,8 @@ black==24.2.0
 flake8==7.0.0
 isort==5.13.2
 ipdb==0.13.13
-notebook==7.1.0
+notebook
 pytest==8.0.1
-
 networkx==3.4.2
 matplotlib
 PyYAML
