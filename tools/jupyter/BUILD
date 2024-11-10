@@ -1,13 +1,13 @@
 load("@pip//:requirements.bzl", "requirement")
-load("//tools/rules/python:defs.bzl", "graph_generator_py_binary")
+load("//tools/rules/python:defs.bzl", "graph_generator_py_library")
 
-graph_generator_py_binary(
-    name = "jupyter",
+exports_files(["main.py"])
+
+graph_generator_py_library(
+    name = "main",
     srcs = ["main.py"],
-    main = "main.py",
+    visibility = ["//visibility:public"],
     deps = [
-        # Include the main graph_generator binary so we can call things within it
-        "//graph_generator",
         requirement("notebook"),
     ],
 )
