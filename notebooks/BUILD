@@ -10,3 +10,17 @@ notebook(
         requirement("matplotlib"),
     ],
 )
+
+notebook(
+    name = "colab4",
+    srcs = ["colab4.ipynb"],
+    deps = [
+        requirement("torch"),
+        requirement("torch-geometric"),
+        requirement("torch-scatter"),
+        requirement("torch-sparse"),
+        requirement("matplotlib"),
+        requirement("pandas"),
+        requirement("networkx"),
+    ],
+)
