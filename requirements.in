@@ -9,5 +9,18 @@ matplotlib
 PyYAML
 torch==2.4.0
 torch-geometric==2.6.1
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cpu.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu118.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu121.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu124.html
+torch-scatter
+
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cpu.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu118.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu121.html
+--find-links https://pytorch-geometric.com/whl/torch-2.4.0+cu124.html
+torch-sparse
+
 pydantic
 click
+pandas
