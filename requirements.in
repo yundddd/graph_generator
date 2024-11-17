@@ -7,7 +7,13 @@ pytest==8.0.1
 networkx==3.4.2
 matplotlib
 PyYAML
+
+-f https://download.pytorch.org/whl/cpu
+-f https://download.pytorch.org/whl/cu118
+-f https://download.pytorch.org/whl/cu121
 torch==2.4.0
 torch-geometric==2.6.1
 pydantic
 click
+scikit-learn
+seaborn
