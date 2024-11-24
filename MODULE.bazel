@@ -27,8 +27,8 @@ pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
     python_version = PY_VERSION,
-    requirements_lock = "//:requirements_lock.txt",
-)
+    requirements_darwin = "//:requirements_lock_darwin.txt",
+    requirements_linux = "//:requirements_lock_linux.txt",)
 use_repo(pip, "pip")
 
 ########################################

@@ -16,3 +16,4 @@
 /bazel-*
 .DS_Store
 .ipynb_checkpoints/
+MODULE.bazel.lock

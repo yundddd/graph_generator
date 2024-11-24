@@ -2,7 +2,7 @@ import os
 import re
 import sys
 
-from notebook.notebookapp import main
+from notebook.app import main
 
 if __name__ == "__main__":
     if "BUILD_WORKSPACE_DIRECTORY" in os.environ:
