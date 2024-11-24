@@ -8,5 +8,7 @@ notebook(
         requirement("torch"),
         requirement("torch-geometric"),
         requirement("matplotlib"),
+        requirement("scikit-learn"),
+        requirement("seaborn"),
     ],
 )
