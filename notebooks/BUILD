@@ -10,5 +10,6 @@ notebook(
         requirement("matplotlib"),
         requirement("scikit-learn"),
         requirement("seaborn"),
+        requirement("wandb"),
     ],
 )

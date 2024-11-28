@@ -28,7 +28,8 @@ pip.parse(
     hub_name = "pip",
     python_version = PY_VERSION,
     requirements_darwin = "//:requirements_lock_darwin.txt",
-    requirements_linux = "//:requirements_lock_linux.txt",)
+    requirements_linux = "//:requirements_lock_linux.txt",
+)
 use_repo(pip, "pip")
 
 ########################################

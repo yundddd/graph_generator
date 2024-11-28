@@ -17,3 +17,4 @@ pydantic
 click
 scikit-learn
 seaborn
+wandb
