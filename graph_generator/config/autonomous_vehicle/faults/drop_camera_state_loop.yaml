@@ -1,0 +1,4 @@
+inject_to: camera_monitor
+inject_at: 20
+affect_loop:
+  drop: 10

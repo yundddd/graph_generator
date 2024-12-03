@@ -1,0 +1,4 @@
+inject_to: camera_driver2
+inject_at: 20
+affect_loop:
+  delay: 20

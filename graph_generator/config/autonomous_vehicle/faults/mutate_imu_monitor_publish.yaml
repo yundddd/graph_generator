@@ -1,0 +1,5 @@
+inject_to: imu_monitor
+inject_at: 20
+affect_publish:
+  topic: imu_state
+  value: -100

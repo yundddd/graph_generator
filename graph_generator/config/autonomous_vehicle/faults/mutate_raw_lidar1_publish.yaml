@@ -1,0 +1,5 @@
+inject_to: lidar_driver1
+inject_at: 20
+affect_publish:
+  topic: raw_lidar_data1
+  value: -100

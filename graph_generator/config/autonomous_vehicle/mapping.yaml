@@ -88,6 +88,25 @@ nodes:
             affect_publish:
               topic: road_data
               drop: 5
+
+      - topic: processed_camera_data5
+        valid_range: [500, 600]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: road_data
+              drop: 5
+              
+      - topic: processed_camera_data8
+        valid_range: [800, 900]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: road_data
+              drop: 5
+
     loop:
       period: 20
       callback:

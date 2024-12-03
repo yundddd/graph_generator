@@ -141,6 +141,51 @@ nodes:
               topic: tracks
               drop: 5
 
+      - topic: processed_camera_data4
+        valid_range: [400, 500]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+      
+      - topic: processed_camera_data5
+        valid_range: [500, 600]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+
+      - topic: processed_camera_data6
+        valid_range: [600, 700]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+
+      - topic: processed_camera_data7
+        valid_range: [700, 800]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+
+      - topic: processed_camera_data8
+        valid_range: [800, 900]
+        watchdog: 7
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: tracks
+              drop: 5
+
       - topic: traffic_light
         valid_range: [10, 20]
         watchdog: 25
