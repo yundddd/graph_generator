@@ -1,0 +1,5 @@
+inject_to: camera_driver7
+inject_at: 20
+affect_publish:
+  topic: raw_camera_data7
+  drop: 10

@@ -211,3 +211,196 @@ nodes:
           - topic: tracks
             value_range: [10, 20]
             delay_range: [5, 8]
+
+  - name: obstacle_detection
+    subscribe:
+      - topic: processed_camera_data5
+        valid_range: [500, 600]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: obstacle_data
+              drop: 4
+
+      - topic: processed_lidar_data4
+        valid_range: [400, 500]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: obstacle_data
+              drop: 4
+
+    loop:
+      period: 15
+      callback:
+        publish:
+          - topic: obstacle_data
+            value_range: [50, 100]
+            delay_range: [1, 2]
+
+
+  - name: sensor_fusion
+    subscribe:
+      - topic: processed_camera_data2
+        valid_range: [200, 300]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: processed_camera_data4
+        valid_range: [400, 500]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+              
+      - topic: processed_camera_data6
+        valid_range: [600, 700]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: processed_lidar_data1
+        valid_range: [100, 200]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: processed_lidar_data2
+        valid_range: [200, 300]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: processed_lidar_data3
+        valid_range: [300, 400]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: imu_data1
+        valid_range: [0, 10]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+    loop:
+      period: 20
+      callback:
+        publish:
+          - topic: sensor_fusion_data
+            value_range: [200, 300]
+            delay_range: [2, 3]
+
+  - name: visual_odometry
+    subscribe:
+      - topic: processed_camera_data3
+        valid_range: [300, 400]
+        watchdog: 7
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: visual_odometry_data
+              drop: 1
+
+      - topic: processed_camera_data6
+        valid_range: [600, 700]
+        watchdog: 7
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: visual_odometry_data
+              drop: 1
+
+      - topic: processed_camera_data7
+        valid_range: [700, 800]
+        watchdog: 7
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: visual_odometry_data
+              drop: 1
+
+    loop:
+      period: 15
+      callback:
+        publish:
+          - topic: visual_odometry_data
+            value_range: [50, 100]
+            delay_range: [1, 2]
+
+
+  - name: motion_estimator
+    subscribe:
+      - topic: visual_odometry_data
+        valid_range: [50, 100]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: motion_estimation
+              value: 60
+              count: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: motion_estimation
+              drop: 2
+
+    loop:
+      period: 25
+      callback:
+        publish:
+          - topic: motion_estimation
+            value_range: [500, 1000]
+            delay_range: [2, 3]
+
+  - name: landmark_recognizer
+    subscribe:
+      - topic: visual_odometry_data
+        valid_range: [50, 100]
+        watchdog: 12
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              drop: 2
+
+      - topic: obstacle_data
+        valid_range: [50, 100]
+        watchdog: 12
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              drop: 2
+
+    loop:
+      period: 25
+      callback:
+        publish:
+          - topic: landmark_data
+            value_range: [500, 1000]
+            delay_range: [2, 3]

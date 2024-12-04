@@ -2,6 +2,30 @@
 # This subsystem has nodes that would crash due to invalid input data, to model user code that contains
 # bugs and is not performing input sanitization.
 nodes:
+  - name: velocity_planner
+    subscribe:
+      - topic: terrain_data
+        valid_range: [0, 100]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 3
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 1
+
+    loop:
+      period: 20
+      callback:
+        publish:
+          - topic: velocity_data
+            value_range: [200, 500]
+            delay_range: [1, 2]
+
   - name: planner
     subscribe:
       - topic: lane_data
@@ -40,6 +64,61 @@ nodes:
           fault:
             affect_publish:
               topic: trajectory
+              drop: 3
+
+      - topic: landmark_data
+        valid_range: [500, 1000]
+        watchdog: 25
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: trajectory
+              drop: 3
+
+      - topic: sensor_fusion_data
+        valid_range: [200, 300]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
+              drop: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
+              drop: 2
+
+      - topic: obstacle_data
+        valid_range: [50, 100]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
+              drop: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
+              drop: 2
+
+      - topic: motion_estimation
+        valid_range: [500, 1000]
+        watchdog: 15
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
+              drop: 3
+              
+      - topic: velocity_data
+        valid_range: [200, 500]
+        watchdog: 25
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: capability
               drop: 3
 
     loop:
