@@ -223,6 +223,24 @@ nodes:
               topic: obstacle_data
               drop: 4
 
+      - topic: processed_camera_data7
+        valid_range: [700, 800]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: obstacle_data
+              drop: 4
+
+      - topic: processed_lidar_data2
+        valid_range: [200, 300]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: obstacle_data
+              drop: 2
+              
       - topic: processed_lidar_data4
         valid_range: [400, 500]
         watchdog: 10
@@ -230,7 +248,7 @@ nodes:
           fault:
             affect_publish:
               topic: obstacle_data
-              drop: 4
+              drop: 2
 
     loop:
       period: 15
@@ -263,6 +281,15 @@ nodes:
               
       - topic: processed_camera_data6
         valid_range: [600, 700]
+        watchdog: 20
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: sensor_fusion_data
+              drop: 3
+
+      - topic: processed_camera_data8
+        valid_range: [800, 900]
         watchdog: 20
         invalid_input_callback:
           fault:
@@ -369,6 +396,20 @@ nodes:
               topic: motion_estimation
               drop: 2
 
+      - topic: sensor_fusion_data
+        valid_range: [200, 300]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: motion_estimation
+              drop: 3
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: motion_estimation
+              drop: 3
+
     loop:
       period: 25
       callback:
@@ -386,7 +427,7 @@ nodes:
           fault:
             affect_publish:
               topic: landmark_data
-              drop: 2
+              drop: 5
 
       - topic: obstacle_data
         valid_range: [50, 100]
@@ -395,7 +436,7 @@ nodes:
           fault:
             affect_publish:
               topic: landmark_data
-              drop: 2
+              drop: 5
 
     loop:
       period: 25

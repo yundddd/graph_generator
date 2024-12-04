@@ -4,6 +4,59 @@
 nodes:
   - name: velocity_planner
     subscribe:
+      - topic: map_data
+        valid_range: [10, 20]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              value: 30
+              count: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 2
+
+      - topic: road_data
+        valid_range: [20, 30]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              value: 30
+              count: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 2
+
+      - topic: motion_estimation
+        valid_range: [500, 1000]
+        watchdog: 15
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 3
+
+      - topic: localization_data
+        valid_range: [100, 200]
+        watchdog: 10
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 3
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: velocity_data
+              drop: 1
+
       - topic: terrain_data
         valid_range: [0, 100]
         watchdog: 10
