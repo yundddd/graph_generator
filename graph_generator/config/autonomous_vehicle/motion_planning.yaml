@@ -34,7 +34,7 @@ nodes:
               topic: velocity_data
               drop: 2
 
-      - topic: motion_estimation
+      - topic: motion_estimation_data
         valid_range: [500, 1000]
         watchdog: 15
         lost_input_callback:
@@ -156,7 +156,7 @@ nodes:
               topic: capability
               drop: 2
 
-      - topic: motion_estimation
+      - topic: motion_estimation_data
         valid_range: [500, 1000]
         watchdog: 15
         lost_input_callback:

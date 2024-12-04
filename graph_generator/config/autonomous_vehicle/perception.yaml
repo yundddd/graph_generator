@@ -387,13 +387,13 @@ nodes:
         invalid_input_callback:
           fault:
             affect_publish:
-              topic: motion_estimation
+              topic: motion_estimation_data
               value: 60
               count: 2
         lost_input_callback:
           fault:
             affect_publish:
-              topic: motion_estimation
+              topic: motion_estimation_data
               drop: 2
 
       - topic: sensor_fusion_data
@@ -402,19 +402,28 @@ nodes:
         invalid_input_callback:
           fault:
             affect_publish:
-              topic: motion_estimation
+              topic: motion_estimation_data
               drop: 3
         lost_input_callback:
           fault:
             affect_publish:
-              topic: motion_estimation
+              topic: motion_estimation_data
+              drop: 3
+
+      - topic: imu_data1
+        valid_range: [0, 10]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: motion_estimation_data
               drop: 3
 
     loop:
       period: 25
       callback:
         publish:
-          - topic: motion_estimation
+          - topic: motion_estimation_data
             value_range: [500, 1000]
             delay_range: [2, 3]
 
@@ -437,6 +446,36 @@ nodes:
             affect_publish:
               topic: landmark_data
               drop: 5
+
+      - topic: road_data
+        valid_range: [20, 30]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              value: 40
+              count: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              drop: 2
+
+      - topic: map_data
+        valid_range: [10, 20]
+        watchdog: 25
+        invalid_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              value: 30
+              count: 2
+        lost_input_callback:
+          fault:
+            affect_publish:
+              topic: landmark_data
+              drop: 2
 
     loop:
       period: 25
