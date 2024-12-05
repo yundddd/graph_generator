@@ -420,7 +420,7 @@ nodes:
               drop: 3
 
     loop:
-      period: 25
+      period: 10
       callback:
         publish:
           - topic: motion_estimation_data
@@ -478,7 +478,7 @@ nodes:
               drop: 2
 
     loop:
-      period: 25
+      period: 10
       callback:
         publish:
           - topic: landmark_data

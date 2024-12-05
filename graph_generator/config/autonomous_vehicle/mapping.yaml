@@ -119,7 +119,7 @@ nodes:
     subscribe:
       - topic: gps1
         valid_range: [0, 10]
-        watchdog: 10
+        watchdog: 25
         invalid_input_callback:
           fault:
             affect_publish:
@@ -129,7 +129,7 @@ nodes:
 
       - topic: gps2
         valid_range: [0, 10]
-        watchdog: 10
+        watchdog: 25
         invalid_input_callback:
           fault:
             affect_publish:
