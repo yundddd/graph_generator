@@ -1,0 +1,5 @@
+inject_to: planner
+inject_at: 20
+affect_receive:
+  topic: control_output
+  drop: 10

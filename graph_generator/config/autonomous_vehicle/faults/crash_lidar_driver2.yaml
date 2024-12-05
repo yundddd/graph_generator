@@ -1,0 +1,3 @@
+inject_to: lidar_driver2
+inject_at: 20
+crash: true

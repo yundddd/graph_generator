@@ -1,4 +1,4 @@
-inject_to: camera_driver5
+inject_to: camera_extractor5
 inject_at: 20
 affect_receive:
   topic: raw_camera_data5
