@@ -1,0 +1,5 @@
+inject_to: control
+inject_at: 20
+affect_receive:
+  topic: trajectory
+  drop: 10

@@ -1,0 +1,4 @@
+inject_to: velocity_planner
+inject_at: 20
+affect_loop:
+  drop: 10

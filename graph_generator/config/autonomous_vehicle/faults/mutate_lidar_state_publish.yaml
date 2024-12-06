@@ -1,0 +1,5 @@
+inject_to: lidar_monitor
+inject_at: 20
+affect_publish:
+  topic: lidar_state
+  value: -100

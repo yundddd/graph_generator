@@ -1,0 +1,5 @@
+inject_to: sensor_fusion
+inject_at: 20
+affect_publish:
+  topic: sensor_fusion_data
+  value: -100

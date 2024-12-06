@@ -1,0 +1,6 @@
+inject_to: camera_extractor8
+inject_at: 20
+affect_receive:
+  topic: raw_camera_data8
+  delay: 50
+  count: 3
