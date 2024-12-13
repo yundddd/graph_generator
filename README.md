@@ -10,6 +10,21 @@ In our literature review, we found that real-world data that captures such faili
 
 The graph executor can simulate scenarios based on customized config to generate a time series of graph data that can be used to train machine learning models that can tackle RCA.
 
+## Visualization
+
+We created a graph configuration that approximates modern autonomous vehicle software [architecture](https://github.com/yundddd/graph_generator/tree/master/graph_generator/config/autonomous_vehicle) (with reasonably similar topology), and injected different faults to the graph at different times to collect a large amount of graph data. The executor is capable of generating visualizations for users to understand dynamic graph systems. Blue nodes denote nominal nodes while red nodes denote faulted nodes.
+For example, autonomous vehicle software stacks (AV 1.0) typically include sensor, mapping, perception, motion planner and control subsystems. When we crash a camera sensor module, which is the lowest layer in the software stack, the fault will first cause a cluster of mapping and perception nodes to fail, and then affect the motion planning system, eventually causing the vehicle control to fail:
+
+![crash_cam](https://github.com/user-attachments/assets/4e947a6b-48c2-4286-88c8-4e200bd0cce0)
+
+Similarly, when we stall the GPS driver, the mapping and localization subsystems start to fail first, causing similar failures in perception, motion planning and control.
+![drop_gps](https://github.com/user-attachments/assets/db1c615d-1915-4c9b-aaf3-fe2202087522)
+
+On the other hand, users are able to inject a less severe fault in the middle of the software stack, which only causes failures to a single subsystem (mapping) without affecting downstream subsystems, due to the fact that they are somewhat resilient towards this injected fault. In this example, the failure propagation pattern can be characterized as local:
+![delay_road](https://github.com/user-attachments/assets/24406b7a-a46a-4afd-931d-6408a1d62f57)
+
+As you can see, some faults show periodic behavior, as nodes typically perform work periodically. Depending on the severity and location of where a fault is injected, it takes some time for faults to spread and the pattern is highly unpredictable by humans without domain expert knowledge. This simulator proves to be crucial to study the behavior of dynamic graph systems. Our repo contains a diverse list of faults that were injected into our example autonomous driving graph, which were used to generate training datasets. To further increase the diversity of our datasets, the graph executor is able to perform a sweep of all available faults, and inject them at different times. A dynamic graph system may respond differently depending on when a Fault is injected. Fault injection simulation at this scale is usually hard to achieve in the real world, but it is extremely feasible with our graph executor as long as users can provide corresponding configurations.
+
 ## Setup
 
 Clone the repo with:
